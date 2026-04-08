@@ -751,7 +751,7 @@
     }
     // añadir meses de otros años si hay ventas
     const añosExtra = new Set();
-    clientes.forEach(c => c.ventas.forEach(v => {
+    clientes.forEach(c => (c.ventas||[]).forEach(v => {
       const d = new Date(v.fecha);
       if (d.getFullYear() !== ahora.getFullYear()) añosExtra.add(d.getFullYear());
     }));
@@ -907,10 +907,13 @@
 
   /* ── OPEN MODAL ── */
   function openModal(id, tab='info') {
-    // Comparación flexible: Firebase puede devolver el id como string o número
     const c = clientes.find(x => String(x.id) === String(id));
     if (!c) { showToast('⚠️ Cliente no encontrado', 'error'); return; }
-    editId = c.id; // usar siempre el id del objeto real
+    // Garantizar arrays aunque Firebase los haya omitido
+    if (!c.notas)     c.notas     = [];
+    if (!c.ventas)    c.ventas    = [];
+    if (!c.postventa) c.postventa = [];
+    editId = c.id;
     document.getElementById('modal-nombre').textContent = '⌚ ' + c.nombre;
     document.getElementById('e-nombre').value    = c.nombre;
     document.getElementById('e-telefono').value  = c.telefono || '';
@@ -1011,6 +1014,7 @@
 
   /* ── RENDER NOTAS ── */
   function renderNotas(c) {
+    if (!c.notas) c.notas = [];
     const el = document.getElementById('notas-list');
     if (!c.notas.length) { el.innerHTML='<p style="color:var(--text3);font-size:.83rem">Sin notas aún.</p>'; return; }
     el.innerHTML = [...c.notas].reverse().map(n =>
