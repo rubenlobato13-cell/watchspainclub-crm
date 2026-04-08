@@ -1008,6 +1008,10 @@
           ${tipoBtnsHtml}
           ${pvTipo?`<button class="pv-tag-clear" onclick="setVentaPvTipo(${c.id},${idx},null)" title="Quitar tipo">✕</button>`:''}
         </div>
+        <!-- BORRAR VENTA -->
+        <div style="margin-top:8px;text-align:right">
+          <button onclick="deleteVenta(${c.id},${idx})" style="background:transparent;border:1px solid rgba(229,57,53,.3);color:#ef9a9a;font-size:.7rem;padding:3px 9px;border-radius:5px;cursor:pointer;font-family:inherit" title="Eliminar esta venta">🗑 Eliminar venta</button>
+        </div>
       </div>`;
     }).join('');
   }
@@ -1302,6 +1306,16 @@
     if (c.ventas[idx]) { c.ventas[idx].estado = nuevoEstado; }
     renderHistorial(c); save();
     showToast('🔄 Estado actualizado');
+  }
+
+  function deleteVenta(cId, idx) {
+    const c = clientes.find(x => String(x.id) === String(cId));
+    if (!c || !c.ventas[idx]) return;
+    const nombre = c.ventas[idx].producto;
+    if (!confirm(`¿Eliminar la venta "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    c.ventas.splice(idx, 1);
+    renderHistorial(c); save();
+    showToast(`🗑 Venta "${nombre}" eliminada`);
   }
 
   /* ── ETIQUETAS POSTVENTA EN VENTA ── */
