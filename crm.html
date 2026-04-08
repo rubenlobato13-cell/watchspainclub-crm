@@ -667,9 +667,10 @@
   const db      = firebase.database();
   const CRM_REF = db.ref('crm_wsc');
 
-  let clientes  = [];
-  let editId    = null;
+  let clientes   = [];
+  let editId     = null;
   let _firstLoad = true;
+  let _saving    = false; // evita que el listener sobreescriba datos mientras guardamos
 
   function _parseFirebaseData(raw) {
     if (!raw) return [];
@@ -696,12 +697,14 @@
       initAñoSel(); initFiltroMes();
       renderTable(); updateStats(); renderBeneficios();
     } else {
-      // Actualización remota del otro usuario
-      clientes = remoto;
-      localStorage.setItem('crm_wsc', JSON.stringify(clientes));
-      renderTable(); updateStats(); renderBeneficios();
-      document.getElementById('sync-dot').style.background = '#4caf50';
-      setTimeout(() => { document.getElementById('sync-dot').style.background = '#555'; }, 2000);
+      // Actualización remota — solo actualizar si NO somos nosotros quienes acabamos de guardar
+      if (!_saving) {
+        clientes = remoto;
+        localStorage.setItem('crm_wsc', JSON.stringify(clientes));
+        renderTable(); updateStats(); renderBeneficios();
+        document.getElementById('sync-dot').style.background = '#4caf50';
+        setTimeout(() => { document.getElementById('sync-dot').style.background = '#555'; }, 2000);
+      }
     }
   }, err => {
     document.getElementById('loading-msg').textContent = '⚠️ Sin conexión — usando datos locales';
@@ -753,8 +756,11 @@
 
   /* ── SAVE ── */
   function save() {
-    localStorage.setItem('crm_wsc', JSON.stringify(clientes)); // copia local de seguridad
-    CRM_REF.set(clientes).catch(() => showToast('⚠️ Error al guardar en la nube', 'error'));
+    _saving = true;
+    localStorage.setItem('crm_wsc', JSON.stringify(clientes));
+    CRM_REF.set(clientes)
+      .then(() => { setTimeout(() => { _saving = false; }, 500); })
+      .catch(() => { _saving = false; showToast('⚠️ Error al guardar en la nube', 'error'); });
     renderTable();
     updateStats();
     renderBeneficios();
@@ -893,8 +899,10 @@
 
   /* ── OPEN MODAL ── */
   function openModal(id, tab='info') {
-    editId = id;
-    const c = clientes.find(x => x.id === id);
+    // Comparación flexible: Firebase puede devolver el id como string o número
+    const c = clientes.find(x => String(x.id) === String(id));
+    if (!c) { showToast('⚠️ Cliente no encontrado', 'error'); return; }
+    editId = c.id; // usar siempre el id del objeto real
     document.getElementById('modal-nombre').textContent = '⌚ ' + c.nombre;
     document.getElementById('e-nombre').value    = c.nombre;
     document.getElementById('e-telefono').value  = c.telefono || '';
@@ -1034,7 +1042,7 @@
     if (!producto) { showToast('Indica el producto', 'error'); return; }
     if (!pvpVenta || pvpVenta <= 0) { showToast('Indica el PVP Venta', 'error'); return; }
     const estado = document.getElementById('v-estado').value;
-    const c = clientes.find(x => x.id === editId);
+    const c = clientes.find(x => String(x.id) === String(editId));
     c.ventas.push({ producto, estado, pvpFab: pvpFab||0, pvpVenta, importe: pvpVenta, fecha: fecha || new Date().toISOString() });
     ['v-producto','v-pvp-fab','v-pvp-venta'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('v-estado').value = 'reservado';
@@ -1047,7 +1055,7 @@
   function addNota() {
     const texto = document.getElementById('n-texto').value.trim();
     if (!texto) { showToast('Escribe una nota', 'error'); return; }
-    const c = clientes.find(x => x.id === editId);
+    const c = clientes.find(x => String(x.id) === String(editId));
     c.notas.push({ texto, fecha: new Date().toISOString() });
     document.getElementById('n-texto').value = '';
     renderNotas(c); save();
@@ -1057,7 +1065,7 @@
   /* ── POBLAR DESPLEGABLE POSTVENTA ── */
   function populatePvArticuloSel() {
     const sel = document.getElementById('pv-articulo-sel');
-    const c = clientes.find(x => x.id === editId);
+    const c = clientes.find(x => String(x.id) === String(editId));
     if (!c) return;
     const prev = sel.value;
     sel.innerHTML = '<option value="">— Selecciona un reloj vendido —</option>';
@@ -1077,7 +1085,7 @@
     const sel      = document.getElementById('pv-articulo-sel');
     const ventaIdx = parseInt(sel.value);
     if (sel.value === '' || isNaN(ventaIdx)) { showToast('Selecciona un reloj vendido', 'error'); return; }
-    const c = clientes.find(x => x.id === editId);
+    const c = clientes.find(x => String(x.id) === String(editId));
     const venta = c.ventas[ventaIdx];
     if (!venta) { showToast('Reloj no encontrado', 'error'); return; }
     if (!c.postventa) c.postventa = [];
@@ -1106,7 +1114,7 @@
 
   /* ── ENVIAR VENTA ENTREGADA A POSTVENTA ── */
   function enviarAPostventa(cId, ventaIdx) {
-    const c = clientes.find(x => x.id === cId);
+    const c = clientes.find(x => String(x.id) === String(cId));
     const v = c.ventas[ventaIdx];
     if (!v) return;
     if (!c.postventa) c.postventa = [];
@@ -1124,7 +1132,7 @@
   }
 
   function updatePvEstado(cId, pvId, nuevoEstado) {
-    const c  = clientes.find(x => x.id === cId);
+    const c  = clientes.find(x => String(x.id) === String(cId));
     const pv = c.postventa.find(p => p.id === pvId);
     if (pv) {
       pv.estado = nuevoEstado;
@@ -1142,7 +1150,7 @@
   }
 
   function deletePv(cId, pvId) {
-    const c  = clientes.find(x => x.id === cId);
+    const c  = clientes.find(x => String(x.id) === String(cId));
     const pv = c.postventa.find(p => p.id === pvId);
     c.postventa = c.postventa.filter(p => p.id !== pvId);
     // Si la venta vinculada ya no tiene más entradas postventa, limpiar pvTag/pvTipo
@@ -1194,7 +1202,7 @@
 
   /* ── SAVE EDIT ── */
   function saveEdit() {
-    const c = clientes.find(x => x.id === editId);
+    const c = clientes.find(x => String(x.id) === String(editId));
     c.nombre    = document.getElementById('e-nombre').value.trim() || c.nombre;
     c.telefono  = document.getElementById('e-telefono').value.trim();
     c.email     = document.getElementById('e-email').value.trim();
@@ -1278,7 +1286,7 @@
   let qsId = null;
 
   function updateVentaEstado(cId, idx, nuevoEstado) {
-    const c = clientes.find(x => x.id === cId);
+    const c = clientes.find(x => String(x.id) === String(cId));
     if (c.ventas[idx]) { c.ventas[idx].estado = nuevoEstado; }
     renderHistorial(c); save();
     showToast('🔄 Estado actualizado');
@@ -1286,7 +1294,7 @@
 
   /* ── ETIQUETAS POSTVENTA EN VENTA ── */
   function setVentaPvTag(cId, idx, tag) {
-    const c = clientes.find(x => x.id === cId);
+    const c = clientes.find(x => String(x.id) === String(cId));
     if (!c.ventas[idx]) return;
     // toggle: si ya tiene esa etiqueta y se pulsa de nuevo, la quita
     c.ventas[idx].pvTag = (c.ventas[idx].pvTag === tag) ? null : tag;
@@ -1296,7 +1304,7 @@
   }
 
   function setVentaPvTipo(cId, idx, tipo) {
-    const c = clientes.find(x => x.id === cId);
+    const c = clientes.find(x => String(x.id) === String(cId));
     if (!c.ventas[idx]) return;
     c.ventas[idx].pvTipo = (c.ventas[idx].pvTipo === tipo) ? null : tipo;
     renderHistorial(c); save();
@@ -1305,8 +1313,9 @@
   }
 
   function openQuickSale(id) {
-    qsId = id;
-    const c = clientes.find(x => x.id === id);
+    const c = clientes.find(x => String(x.id) === String(id));
+    if (!c) { showToast('⚠️ Cliente no encontrado', 'error'); return; }
+    qsId = c.id;
     document.getElementById('qs-nombre').textContent = c.nombre;
     document.getElementById('qs-producto').value = '';
     document.getElementById('qs-estado').value   = 'reservado';
@@ -1346,7 +1355,7 @@
     if (!producto)          { showToast('Indica el producto', 'error'); return; }
     if (!pvpVenta || pvpVenta <= 0) { showToast('Indica el PVP Venta', 'error'); return; }
     const estado = document.getElementById('qs-estado').value;
-    const c = clientes.find(x => x.id === qsId);
+    const c = clientes.find(x => String(x.id) === String(qsId));
     c.ventas.push({ producto, estado, pvpFab, pvpVenta, importe: pvpVenta, fecha: fecha || new Date().toISOString() });
     save();
     closeQSDirect();
