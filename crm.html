@@ -389,9 +389,10 @@
     <div class="label">Beneficio Año</div>
     <div class="value" id="stat-benef-año">0 €</div>
   </div>
-  <div class="stat-card">
-    <div class="label">En Postventa</div>
-    <div class="value" id="stat-postventa">0</div>
+  <div class="stat-card" onclick="togglePvPanel()" title="Ver seguimiento postventa" style="cursor:pointer;border-top-color:#ce93d8">
+    <div class="label">🔧 En Postventa</div>
+    <div class="value" id="stat-postventa" style="color:#ce93d8">0</div>
+    <div style="font-size:.68rem;color:var(--text3);margin-top:3px">Toca para ver detalle →</div>
   </div>
 </div>
 
@@ -431,6 +432,22 @@
         <select id="filtro-mes" onchange="renderTable()">
           <option value="">Todos los meses</option>
         </select>
+        <select id="filtro-pv" onchange="renderTable()" title="Filtrar por estado postventa">
+          <option value="">🔧 Todo (postventa)</option>
+          <option value="activa">🔴 Con postventa activa</option>
+          <option value="taller-angel">🔵 Taller Ángel</option>
+          <option value="taller-china">🩷 Taller China</option>
+          <option value="reparado">✅ Reparado — listo entregar</option>
+          <option value="entregado">📦 Entregado</option>
+        </select>
+      </div>
+      <!-- PANEL SEGUIMIENTO POSTVENTA -->
+      <div id="pv-tracking-panel" style="display:none;margin-bottom:16px;border:1px solid rgba(156,39,176,.3);border-radius:12px;overflow:hidden">
+        <div style="background:rgba(156,39,176,.12);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(156,39,176,.2)">
+          <span style="font-weight:700;font-size:.88rem;color:#ce93d8">🔧 Seguimiento Postventa — Artículos activos</span>
+          <button onclick="togglePvPanel()" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:.8rem">✕ Cerrar</button>
+        </div>
+        <div id="pv-tracking-body" style="padding:14px"></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -819,13 +836,13 @@
 
   /* ── RENDER TABLE ── */
   function renderTable() {
-    const q   = document.getElementById('buscar').value.toLowerCase();
-    const est = document.getElementById('filtro-estado').value;   // estado de venta
-    const mes = document.getElementById('filtro-mes').value;
+    const q    = document.getElementById('buscar').value.toLowerCase();
+    const est  = document.getElementById('filtro-estado').value;
+    const mes  = document.getElementById('filtro-mes').value;
+    const pvF  = document.getElementById('filtro-pv').value;   // filtro postventa
 
     const filtered = clientes.filter(c => {
       const match = (c.nombre+(c.email||'')+(c.telefono||'')).toLowerCase().includes(q);
-      // filtro estado: el cliente debe tener al menos una venta en ese estado
       const estMatch = !est || (c.ventas||[]).some(v => (v.estado||'reservado') === est);
       let mesMatch = true;
       if (mes) {
@@ -835,7 +852,14 @@
           return d.getFullYear() === año && (d.getMonth()+1) === m;
         });
       }
-      return match && estMatch && mesMatch;
+      // filtro postventa
+      let pvMatch = true;
+      if (pvF === 'activa') {
+        pvMatch = (c.postventa||[]).some(p => p.estado !== 'entregado');
+      } else if (pvF) {
+        pvMatch = (c.postventa||[]).some(p => p.estado === pvF);
+      }
+      return match && estMatch && mesMatch && pvMatch;
     });
 
     const tbody = document.getElementById('tabla-body');
@@ -887,6 +911,9 @@
         </div></td>
       </tr>`;
     }).join('');
+
+    // Actualizar panel de seguimiento si está abierto
+    if (_pvPanelOpen) renderPvTrackingPanel();
   }
 
   /* ── UPDATE STATS ── */
@@ -918,6 +945,77 @@
 
     const enPv = clientes.reduce((s,c)=>s+(c.postventa||[]).filter(p=>p.estado!=='entregado').length,0);
     document.getElementById('stat-postventa').textContent = enPv;
+  }
+
+  /* ── PANEL SEGUIMIENTO POSTVENTA ── */
+  let _pvPanelOpen = false;
+  function togglePvPanel() {
+    _pvPanelOpen = !_pvPanelOpen;
+    const panel = document.getElementById('pv-tracking-panel');
+    if (_pvPanelOpen) {
+      renderPvTrackingPanel();
+      panel.style.display = 'block';
+    } else {
+      panel.style.display = 'none';
+    }
+  }
+
+  function renderPvTrackingPanel() {
+    const ESTADOS = [
+      { key: 'taller-angel', label: '🔵 Taller Ángel',           color: '#90caf9', bg: 'rgba(66,165,245,.12)' },
+      { key: 'taller-china', label: '🩷 Taller China',            color: '#f48fb1', bg: 'rgba(244,143,177,.1)'  },
+      { key: 'reparado',     label: '✅ Reparado — listo',        color: '#a5d6a7', bg: 'rgba(76,175,80,.12)'   },
+      { key: 'entregado',    label: '📦 Entregado',               color: '#ffe082', bg: 'rgba(255,224,130,.1)'  },
+    ];
+
+    // Recoger todos los artículos de postventa de todos los clientes
+    const items = [];
+    clientes.forEach(c => {
+      (c.postventa||[]).forEach(p => {
+        items.push({ ...p, clienteNombre: c.nombre, clienteId: c.id });
+      });
+    });
+
+    const body = document.getElementById('pv-tracking-body');
+    if (!items.length) {
+      body.innerHTML = '<p style="color:var(--text3);font-size:.85rem;text-align:center;padding:20px">Sin artículos en postventa.</p>';
+      return;
+    }
+
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">';
+    ESTADOS.forEach(est => {
+      const grupo = items.filter(i => (i.estado||'taller-angel') === est.key);
+      html += `<div style="background:${est.bg};border:1px solid ${est.color}33;border-radius:10px;padding:12px">
+        <div style="font-weight:700;font-size:.82rem;color:${est.color};margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+          ${est.label}
+          <span style="background:${est.color}22;color:${est.color};border-radius:10px;padding:2px 8px;font-size:.75rem">${grupo.length}</span>
+        </div>`;
+      if (!grupo.length) {
+        html += `<p style="color:var(--text3);font-size:.75rem;text-align:center;padding:8px 0">Sin artículos</p>`;
+      } else {
+        grupo.forEach(p => {
+          const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'short'}) : '';
+          const tipo  = p.tipo === 'garantia' ? '<span style="color:#90caf9;font-size:.68rem">Garantía</span>'
+                      : p.tipo === 'fuera-garantia' ? '<span style="color:#ffcc80;font-size:.68rem">F.Garantía</span>' : '';
+          html += `<div onclick="openModal(${p.clienteId},'postventa')" style="background:rgba(0,0,0,.25);border-radius:7px;padding:8px 10px;margin-bottom:6px;cursor:pointer;border:1px solid transparent;transition:.15s"
+            onmouseover="this.style.borderColor='${est.color}55'" onmouseout="this.style.borderColor='transparent'">
+            <div style="font-weight:700;font-size:.82rem;color:var(--text)">${p.articulo||'—'}</div>
+            <div style="font-size:.75rem;color:${est.color};margin-top:2px">👤 ${p.clienteNombre}</div>
+            <div style="display:flex;justify-content:space-between;margin-top:4px;align-items:center">
+              ${tipo}
+              ${fecha ? `<span style="color:var(--text3);font-size:.7rem">${fecha}</span>` : ''}
+            </div>
+            ${p.notas ? `<div style="color:var(--text2);font-size:.72rem;margin-top:4px;font-style:italic">"${p.notas}"</div>` : ''}
+          </div>`;
+        });
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+
+    const activos = items.filter(i => i.estado !== 'entregado').length;
+    html += `<div style="margin-top:10px;font-size:.75rem;color:var(--text3);text-align:right">${items.length} artículos totales · ${activos} pendientes de entrega</div>`;
+    body.innerHTML = html;
   }
 
   /* ── OPEN MODAL ── */
