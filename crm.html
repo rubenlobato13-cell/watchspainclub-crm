@@ -347,10 +347,10 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
-    <button onclick="sincronizar()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:4px 10px;border-radius:6px;font-size:.72rem;cursor:pointer;display:flex;align-items:center;gap:5px" title="Cargar datos actualizados de la nube">
+    <div style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:4px 10px;border-radius:6px;font-size:.72rem;display:flex;align-items:center;gap:5px" title="Sincronización automática en tiempo real">
       <div id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#555;transition:background .4s;flex-shrink:0"></div>
-      <span id="sync-label">🔄 Sincronizar</span>
-    </button>
+      <span id="sync-label">Conectando...</span>
+    </div>
     <span class="fecha" id="fecha-hoy"></span>
   </div>
 </header>
@@ -667,9 +667,11 @@
   const db      = firebase.database();
   const CRM_REF = db.ref('crm_wsc');
 
-  let clientes   = [];
-  let editId     = null;
-  let _firstLoad = true;
+  let clientes      = [];
+  let editId        = null;
+  let _firstLoad    = true;
+  let _lastSaveTime = 0;   // timestamp del último save() local
+  let _modalOpen    = false; // true cuando el modal de cliente está abierto
   let _saving    = false; // evita que el listener sobreescriba datos mientras guardamos
 
   function _parseFirebaseData(raw) {
@@ -678,56 +680,68 @@
     return Object.values(raw).filter(Boolean);
   }
 
-  // Carga inicial desde Firebase (una sola vez, sin listener continuo)
-  function cargarDesdeFirebase() {
-    CRM_REF.once('value').then(snap => {
-      const remoto = _parseFirebaseData(snap.val());
-      if (!remoto.length) {
-        const old = localStorage.getItem('crm_wsc') || localStorage.getItem('crm_clientes');
-        if (old) { try { clientes = JSON.parse(old); CRM_REF.set(clientes); } catch(e){} }
-      } else {
-        clientes = remoto;
-        localStorage.setItem('crm_wsc', JSON.stringify(clientes));
+  // ── Sincronización automática en tiempo real con Firebase ──
+  function _mostrarUltimaSync() {
+    const ahora = new Date();
+    const hh = String(ahora.getHours()).padStart(2,'0');
+    const mm = String(ahora.getMinutes()).padStart(2,'0');
+    document.getElementById('sync-label').textContent = `⚡ ${hh}:${mm}`;
+  }
+
+  function iniciarSyncTiempoReal() {
+    const dot = document.getElementById('sync-dot');
+    const lbl = document.getElementById('sync-label');
+
+    CRM_REF.on('value', snap => {
+      // Primera vez: carga inicial (el listener siempre dispara al conectarse)
+      if (_firstLoad) {
+        _firstLoad = false;
+        const remoto = _parseFirebaseData(snap.val());
+        if (!remoto.length) {
+          // Firebase vacío → subir localStorage si existe
+          const old = localStorage.getItem('crm_wsc') || localStorage.getItem('crm_clientes');
+          if (old) { try { clientes = JSON.parse(old); _lastSaveTime = Date.now(); CRM_REF.set(clientes); } catch(e){} }
+        } else {
+          clientes = remoto;
+          localStorage.setItem('crm_wsc', JSON.stringify(clientes));
+        }
+        document.getElementById('loading-screen').style.display = 'none';
+        dot.style.background = '#4caf50';
+        _mostrarUltimaSync();
+        initAñoSel(); initFiltroMes();
+        renderTable(); updateStats(); renderBeneficios();
+        return;
       }
-      document.getElementById('loading-screen').style.display = 'none';
-      const dot = document.getElementById('sync-dot');
-      dot.style.background = '#4caf50'; dot.title = '🟢 Conectado a Firebase';
-      document.getElementById('sync-label').textContent = 'Online';
-      initAñoSel(); initFiltroMes();
-      renderTable(); updateStats(); renderBeneficios();
-    }).catch(() => {
+
+      // Actualizaciones posteriores (otro dispositivo guardó datos)
+      // Ignorar si acabamos de guardar nosotros mismos (evita eco)
+      if (Date.now() - _lastSaveTime < 4000) return;
+      // Ignorar si el modal está abierto (evitar interrumpir edición activa)
+      if (_modalOpen) return;
+
+      const remoto = _parseFirebaseData(snap.val());
+      if (!remoto.length) return;
+      clientes = remoto;
+      localStorage.setItem('crm_wsc', JSON.stringify(clientes));
+      renderTable(); updateStats(); renderBeneficios(); initFiltroMes();
+      dot.style.background = '#4caf50';
+      _mostrarUltimaSync();
+      showToast('🔄 Datos actualizados automáticamente');
+    }, err => {
+      // Error de conexión
       document.getElementById('loading-msg').textContent = '⚠️ Sin conexión — usando datos locales';
       document.getElementById('loading-spinner').style.display = 'none';
       clientes = (() => { try { return JSON.parse(localStorage.getItem('crm_wsc')||'[]'); } catch(e){return[];} })();
       setTimeout(() => {
         document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('sync-dot').style.background = '#e53935';
-        document.getElementById('sync-label').textContent = 'Offline';
+        dot.style.background = '#e53935';
+        lbl.textContent = '⚠️ Offline';
         initAñoSel(); initFiltroMes();
         renderTable(); updateStats(); renderBeneficios();
       }, 1200);
     });
   }
-  cargarDesdeFirebase();
-
-  function sincronizar() {
-    const dot = document.getElementById('sync-dot');
-    const lbl = document.getElementById('sync-label');
-    dot.style.background = '#ffc107'; lbl.textContent = '🔄 Cargando...';
-    CRM_REF.once('value').then(snap => {
-      const remoto = _parseFirebaseData(snap.val());
-      if (remoto.length) {
-        clientes = remoto;
-        localStorage.setItem('crm_wsc', JSON.stringify(clientes));
-      }
-      renderTable(); updateStats(); renderBeneficios(); initFiltroMes();
-      dot.style.background = '#4caf50'; lbl.textContent = '✅ Sincronizado';
-      setTimeout(() => { dot.style.background = '#4caf50'; lbl.textContent = '🔄 Sincronizar'; }, 2000);
-    }).catch(() => {
-      dot.style.background = '#e53935'; lbl.textContent = '⚠️ Sin conexión';
-      setTimeout(() => { lbl.textContent = '🔄 Sincronizar'; }, 2000);
-    });
-  }
+  iniciarSyncTiempoReal();
 
   const PV_LABELS  = {'taller-angel':'🔵 Taller Ángel','taller-china':'🩷 Taller China','reparado':'✅ Reparado','entregado':'📦 Entregado'};
   const PV_CLASS   = {'taller-angel':'angel','taller-china':'china','reparado':'reparado','entregado':'entregado'};
@@ -767,6 +781,7 @@
 
   /* ── SAVE ── */
   function save() {
+    _lastSaveTime = Date.now();  // marcar que acabamos de guardar nosotros
     localStorage.setItem('crm_wsc', JSON.stringify(clientes));
     CRM_REF.set(clientes).catch(() => showToast('⚠️ Error al guardar en la nube', 'error'));
     renderTable();
@@ -925,6 +940,7 @@
     const btnMap = {info: 0, ventas: 1, notas: 2, postventa: 3};
     const btns = document.querySelectorAll('.tab-btn');
     showTab(tab, btns[btnMap[tab] ?? 0]);
+    _modalOpen = true;
     document.getElementById('modal-overlay').classList.add('active');
   }
 
@@ -1237,7 +1253,7 @@
 
   /* ── MODAL CLOSE ── */
   function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalDirect(); }
-  function closeModalDirect() { document.getElementById('modal-overlay').classList.remove('active'); editId = null; }
+  function closeModalDirect() { _modalOpen = false; document.getElementById('modal-overlay').classList.remove('active'); editId = null; }
 
   /* ── TABS ── */
   function showTab(tab, btn) {
