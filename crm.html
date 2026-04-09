@@ -126,15 +126,17 @@
     /* Estados de venta */
     .badge-reservado{background:rgba(255,193,7,.15);color:#ffd54f;border:1px solid rgba(255,193,7,.3);}
     .badge-pedido{background:rgba(66,165,245,.15);color:#64b5f6;border:1px solid rgba(66,165,245,.3);}
-    .badge-enviado{background:rgba(156,39,176,.15);color:#ce93d8;border:1px solid rgba(156,39,176,.3);}
-    .badge-entregado-venta{background:rgba(76,175,80,.2);color:#81c784;border:1px solid rgba(76,175,80,.3);}
+    .badge-fedex{background:rgba(156,39,176,.15);color:#ce93d8;border:1px solid rgba(156,39,176,.3);}
+    .badge-nacex{background:rgba(255,111,0,.15);color:#ffab40;border:1px solid rgba(255,111,0,.3);}
+    .badge-entregado{background:rgba(76,175,80,.2);color:#81c784;border:1px solid rgba(76,175,80,.3);}
     /* Chips mini en tabla */
     .estado-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
     .chip{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;}
     .chip-reservado{background:rgba(255,193,7,.15);color:#ffd54f;}
     .chip-pedido{background:rgba(66,165,245,.15);color:#64b5f6;}
-    .chip-enviado{background:rgba(156,39,176,.15);color:#ce93d8;}
-    .chip-entregado-venta{background:rgba(76,175,80,.2);color:#81c784;}
+    .chip-fedex{background:rgba(156,39,176,.15);color:#ce93d8;}
+    .chip-nacex{background:rgba(255,111,0,.15);color:#ffab40;}
+    .chip-entregado{background:rgba(76,175,80,.2);color:#81c784;}
     /* cambiar estado venta inline */
     .venta-estado-btn{background:none;border:1px solid var(--border2);border-radius:5px;color:var(--text2);font-size:.68rem;padding:2px 7px;cursor:pointer;font-family:inherit;}
     .venta-estado-btn:hover{border-color:var(--red);color:var(--red3);}
@@ -362,20 +364,24 @@
     <div class="value" id="stat-total">0</div>
   </div>
   <div class="stat-card yellow-top">
-    <div class="label">🟡 Reservadas</div>
+    <div class="label">🟡 Reservado</div>
     <div class="value" id="stat-reservado">0</div>
   </div>
   <div class="stat-card blue-top">
-    <div class="label">🔵 Pedidas</div>
+    <div class="label">🔵 Pedido</div>
     <div class="value" id="stat-pedido">0</div>
   </div>
   <div class="stat-card" style="border-top-color:#ce93d8">
-    <div class="label">🟣 Enviadas</div>
-    <div class="value" id="stat-enviado">0</div>
+    <div class="label">🟣 FedEx</div>
+    <div class="value" id="stat-fedex">0</div>
+  </div>
+  <div class="stat-card" style="border-top-color:#ffab40">
+    <div class="label">🟠 Nacex</div>
+    <div class="value" id="stat-nacex">0</div>
   </div>
   <div class="stat-card green-top">
-    <div class="label">🟢 Entregadas</div>
-    <div class="value" id="stat-entregado-venta">0</div>
+    <div class="label">🟢 Entregado</div>
+    <div class="value" id="stat-entregado">0</div>
   </div>
   <div class="stat-card">
     <div class="label">Ventas Totales</div>
@@ -426,8 +432,9 @@
           <option value="">Todos los estados de venta</option>
           <option value="reservado">🟡 Reservado</option>
           <option value="pedido">🔵 Pedido</option>
-          <option value="enviado">🟣 Enviado</option>
-          <option value="entregado-venta">🟢 Entregado</option>
+          <option value="fedex">🟣 FedEx</option>
+          <option value="nacex">🟠 Nacex</option>
+          <option value="entregado">🟢 Entregado</option>
         </select>
         <select id="filtro-mes" onchange="renderTable()">
           <option value="">Todos los meses</option>
@@ -537,8 +544,9 @@
             <select id="v-estado">
               <option value="reservado">🟡 Reservado</option>
               <option value="pedido">🔵 Pedido</option>
-              <option value="enviado">🟣 Enviado</option>
-              <option value="entregado-venta">🟢 Entregado</option>
+              <option value="fedex">🟠 FedEx</option>
+              <option value="nacex">🟣 Nacex</option>
+              <option value="entregado">🟢 Entregado</option>
             </select>
           </div>
           <div><label>PVP Fábrica (€) — Coste</label><input type="number" id="v-pvp-fab" placeholder="0.00" step="0.01" oninput="calcBeneficioLive()"/></div>
@@ -628,8 +636,9 @@
       <select id="qs-estado">
         <option value="reservado">🟡 Reservado</option>
         <option value="pedido">🔵 Pedido</option>
-        <option value="enviado">🟣 Enviado</option>
-        <option value="entregado-venta">🟢 Entregado</option>
+        <option value="fedex">🟣 FedEx</option>
+        <option value="nacex">🟠 Nacex</option>
+        <option value="entregado">🟢 Entregado</option>
       </select>
       <div class="two-col" style="margin-top:2px">
         <div>
@@ -693,8 +702,15 @@
 
   function _parseFirebaseData(raw) {
     if (!raw) return [];
-    if (Array.isArray(raw)) return raw.filter(Boolean);
-    return Object.values(raw).filter(Boolean);
+    const arr = Array.isArray(raw) ? raw.filter(Boolean) : Object.values(raw).filter(Boolean);
+    // Migrar estados antiguos → nuevos nombres
+    arr.forEach(c => {
+      (c.ventas||[]).forEach(v => {
+        if (v.estado === 'enviado')         v.estado = 'fedex';
+        if (v.estado === 'entregado-venta') v.estado = 'entregado';
+      });
+    });
+    return arr;
   }
 
   // ── Sincronización automática en tiempo real con Firebase ──
@@ -763,8 +779,8 @@
   const PV_LABELS  = {'taller-angel':'🔵 Taller Ángel','taller-china':'🩷 Taller China','reparado':'✅ Reparado','entregado':'📦 Entregado'};
   const PV_CLASS   = {'taller-angel':'angel','taller-china':'china','reparado':'reparado','entregado':'entregado'};
   const MESES      = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const VTA_LABELS = {'reservado':'🟡 Reservado','pedido':'🔵 Pedido','enviado':'🟣 Enviado','entregado-venta':'🟢 Entregado'};
-  const VTA_COLS   = ['reservado','pedido','enviado','entregado-venta'];
+  const VTA_LABELS = {'reservado':'🟡 Reservado','pedido':'🔵 Pedido','fedex':'🟣 FedEx','nacex':'🟠 Nacex','entregado':'🟢 Entregado'};
+  const VTA_COLS   = ['reservado','pedido','fedex','nacex','entregado'];
 
   document.getElementById('fecha-hoy').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('v-fecha').valueAsDate = new Date();
@@ -922,8 +938,9 @@
     const allVentas = clientes.flatMap(c => c.ventas||[]);
     document.getElementById('stat-reservado').textContent = allVentas.filter(v=>(v.estado||'reservado')==='reservado').length;
     document.getElementById('stat-pedido').textContent    = allVentas.filter(v=>(v.estado||'reservado')==='pedido').length;
-    document.getElementById('stat-enviado').textContent   = allVentas.filter(v=>(v.estado||'reservado')==='enviado').length;
-    document.getElementById('stat-entregado-venta').textContent = allVentas.filter(v=>(v.estado||'reservado')==='entregado-venta').length;
+    document.getElementById('stat-fedex').textContent     = allVentas.filter(v=>(v.estado||'reservado')==='fedex').length;
+    document.getElementById('stat-nacex').textContent     = allVentas.filter(v=>(v.estado||'reservado')==='nacex').length;
+    document.getElementById('stat-entregado').textContent = allVentas.filter(v=>(v.estado||'reservado')==='entregado').length;
     const totalVentas = clientes.reduce((s,c) => s + (c.ventas||[]).reduce((sv,v)=>sv+(v.pvpVenta||v.importe||0),0), 0);
     document.getElementById('stat-ventas').textContent = totalVentas.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 
