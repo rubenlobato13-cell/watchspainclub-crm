@@ -569,6 +569,7 @@
               <option value="bizum">📱 Bizum</option>
               <option value="transferencia">🏦 Transferencia</option>
               <option value="tarjeta">💳 Tarjeta</option>
+              <option value="contrareembolso">📦 Contrareembolso</option>
               <option value="crypto">₿ Crypto</option>
             </select>
           </div>
@@ -584,6 +585,7 @@
               <option value="bizum">📱 Bizum</option>
               <option value="transferencia">🏦 Transferencia</option>
               <option value="tarjeta">💳 Tarjeta</option>
+              <option value="contrareembolso">📦 Contrareembolso</option>
               <option value="crypto">₿ Crypto</option>
             </select>
           </div>
@@ -691,6 +693,39 @@
     <div class="qs-footer">
       <button class="btn btn-secondary btn-sm" onclick="closeQSDirect()">Cancelar</button>
       <button class="btn btn-green" style="width:auto;margin-top:0" onclick="saveQuickSale()">💾 Guardar Venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY PAGO FINAL -->
+<div class="qs-overlay" id="pf-overlay" onclick="closePF(event)">
+  <div class="qs-modal" style="max-width:360px">
+    <div class="qs-header">
+      <span>💳 Registrar Pago Final — <span id="pf-producto">Reloj</span></span>
+      <button class="close-btn" onclick="closePFDirect()">×</button>
+    </div>
+    <div class="qs-body">
+      <label>Importe pago final (€)</label>
+      <input type="number" id="pf-importe" placeholder="0.00" step="0.01"/>
+      <label style="margin-top:10px">Forma de pago</label>
+      <select id="pf-forma">
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="bizum">📱 Bizum</option>
+        <option value="transferencia">🏦 Transferencia</option>
+        <option value="tarjeta">💳 Tarjeta</option>
+        <option value="contrareembolso">📦 Contrareembolso</option>
+        <option value="crypto">₿ Crypto</option>
+      </select>
+      <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+        <label style="margin-top:0;display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:.82rem;cursor:pointer">
+          <input type="checkbox" id="pf-entregar" checked style="width:auto;accent-color:var(--green)"/>
+          Cambiar estado a 🟢 Entregado automáticamente
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closePFDirect()">Cancelar</button>
+      <button class="btn btn-green" style="width:auto;margin-top:0" onclick="savePagoFinal()">💾 Confirmar pago</button>
     </div>
   </div>
 </div>
@@ -1156,14 +1191,18 @@
           <span class="${ben>=0?'beneficio-pos':'beneficio-neg'}">💰 ${ben>=0?'+':''}${ben.toFixed(2)} €</span>
           ${venta>0?`<span style="color:var(--text3)">Margen: ${((ben/venta)*100).toFixed(1)}%</span>`:''}
         </div>`:''}
-        ${(v.reserva||v.pagoFinal)?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:.76rem">
-          ${v.reserva?`<span style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.25);color:#ffd54f;padding:3px 9px;border-radius:6px">
-            🔒 Reserva: <strong>${Number(v.reserva).toFixed(2)} €</strong>${v.reservaForma?' · '+{'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transf.','tarjeta':'💳 Tarjeta','crypto':'₿ Crypto'}[v.reservaForma]||'':''}
-          </span>`:''}
-          ${v.pagoFinal?`<span style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.25);color:#a5d6a7;padding:3px 9px;border-radius:6px">
-            ✅ Pago final: <strong>${Number(v.pagoFinal).toFixed(2)} €</strong>${v.pagoFinalForma?' · '+{'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transf.','tarjeta':'💳 Tarjeta','crypto':'₿ Crypto'}[v.pagoFinalForma]||'':''}
-          </span>`:''}
-        </div>`:''}
+        ${(()=>{
+          const FORMAS = {'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transf.','tarjeta':'💳 Tarjeta','contrareembolso':'📦 Contrareem.','crypto':'₿ Crypto'};
+          let html = '';
+          if (v.reserva||v.pagoFinal) {
+            html += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:.76rem">`;
+            if (v.reserva) html += `<span style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.25);color:#ffd54f;padding:3px 9px;border-radius:6px">🔒 Reserva: <strong>${Number(v.reserva).toFixed(2)} €</strong>${v.reservaForma?' · '+(FORMAS[v.reservaForma]||''):''}</span>`;
+            if (v.pagoFinal) html += `<span style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.25);color:#a5d6a7;padding:3px 9px;border-radius:6px">✅ Pago final: <strong>${Number(v.pagoFinal).toFixed(2)} €</strong>${v.pagoFinalForma?' · '+(FORMAS[v.pagoFinalForma]||''):''}</span>`;
+            html += `</div>`;
+          }
+          if (!v.pagoFinal) html += `<div style="margin-top:6px"><button onclick="abrirPagoFinal(${c.id},${idx})" style="background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);color:#81c784;font-size:.72rem;padding:4px 11px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700">💳 Registrar pago final</button></div>`;
+          return html;
+        })()}
 
         <!-- ESTADO DE VENTA -->
         <div style="margin-top:7px;display:flex;gap:4px;flex-wrap:wrap;align-items:center">
@@ -1575,6 +1614,38 @@
 
   function closeQS(e) { if (e.target === document.getElementById('qs-overlay')) closeQSDirect(); }
   function closeQSDirect() { document.getElementById('qs-overlay').classList.remove('active'); qsId = null; }
+
+  /* ── PAGO FINAL ── */
+  let _pfCId = null, _pfIdx = null;
+  function abrirPagoFinal(cId, idx) {
+    const c = clientes.find(x => String(x.id) === String(cId));
+    if (!c || !c.ventas[idx]) return;
+    _pfCId = cId; _pfIdx = idx;
+    document.getElementById('pf-producto').textContent = c.ventas[idx].producto;
+    // Sugerir el resto: pvpVenta - reserva
+    const resto = (c.ventas[idx].pvpVenta||c.ventas[idx].importe||0) - (c.ventas[idx].reserva||0);
+    document.getElementById('pf-importe').value = resto > 0 ? resto.toFixed(2) : '';
+    document.getElementById('pf-forma').value = 'efectivo';
+    document.getElementById('pf-entregar').checked = true;
+    document.getElementById('pf-overlay').classList.add('active');
+    setTimeout(() => document.getElementById('pf-importe').focus(), 80);
+  }
+  function savePagoFinal() {
+    const importe = parseFloat(document.getElementById('pf-importe').value);
+    if (!importe || importe <= 0) { showToast('Indica el importe del pago final', 'error'); return; }
+    const forma     = document.getElementById('pf-forma').value;
+    const entregar  = document.getElementById('pf-entregar').checked;
+    const c = clientes.find(x => String(x.id) === String(_pfCId));
+    if (!c || !c.ventas[_pfIdx]) return;
+    c.ventas[_pfIdx].pagoFinal      = importe;
+    c.ventas[_pfIdx].pagoFinalForma = forma;
+    if (entregar) c.ventas[_pfIdx].estado = 'entregado';
+    renderHistorial(c); save();
+    showToast('✅ Pago final registrado' + (entregar ? ' — Estado → Entregado' : ''));
+    closePFDirect();
+  }
+  function closePF(e) { if (e.target === document.getElementById('pf-overlay')) closePFDirect(); }
+  function closePFDirect() { document.getElementById('pf-overlay').classList.remove('active'); _pfCId = null; _pfIdx = null; }
 
   // ── INIT: gestionado por el listener de Firebase (CRM_REF.on) ──
   document.getElementById('v-fecha').valueAsDate = new Date();
