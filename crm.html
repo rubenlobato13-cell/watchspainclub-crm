@@ -394,12 +394,22 @@
     <div class="value" id="stat-ventas">0 €</div>
   </div>
   <div class="stat-card green-top">
-    <div class="label">Beneficio Mes</div>
-    <div class="value" id="stat-benef-mes">0 €</div>
+    <div class="label">📊 Beneficio Mes</div>
+    <div class="value" id="stat-benef-mes" style="font-size:1.45rem">0 €</div>
+    <div style="font-size:.7rem;color:var(--text3);margin-top:4px">Total facturado</div>
+    <div style="margin-top:5px;padding-top:5px;border-top:1px solid var(--border)">
+      <span style="font-size:.68rem;color:var(--text3)">✅ Cobrado:</span>
+      <span id="stat-benef-mes-cobrado" style="font-size:.78rem;font-weight:700;margin-left:4px;color:#81c784">0 €</span>
+    </div>
   </div>
   <div class="stat-card blue-top">
-    <div class="label">Beneficio Año</div>
-    <div class="value" id="stat-benef-año">0 €</div>
+    <div class="label">📊 Beneficio Año</div>
+    <div class="value" id="stat-benef-año" style="font-size:1.45rem">0 €</div>
+    <div style="font-size:.7rem;color:var(--text3);margin-top:4px">Total facturado</div>
+    <div style="margin-top:5px;padding-top:5px;border-top:1px solid var(--border)">
+      <span style="font-size:.68rem;color:var(--text3)">✅ Cobrado:</span>
+      <span id="stat-benef-año-cobrado" style="font-size:.78rem;font-weight:700;margin-left:4px;color:#64b5f6">0 €</span>
+    </div>
   </div>
   <div class="stat-card" onclick="togglePvPanel()" title="Ver seguimiento postventa" style="cursor:pointer;border-top-color:#ce93d8">
     <div class="label">🔧 En Postventa</div>
@@ -1173,25 +1183,37 @@
     document.getElementById('stat-ventas').textContent = totalCobrado.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 
     const now = new Date();
+    // Totales facturados (todas las ventas, para objetivos)
     let benefMes = 0, benefAño = 0;
+    // Solo cobrado y verificado (finalizado, para contabilidad)
+    let benefMesCobrado = 0, benefAñoCobrado = 0;
     clientes.forEach(c => (c.ventas||[]).forEach(v => {
-      // Solo contar ventas con pago final finalizado; si no hay pago final, con reserva finalizada
-      const contabilizada = v.pagoFinalEstado === 'finalizado' ||
-                            (!v.pagoFinal && !v.reserva && v.estado === 'entregado') ||
-                            (!v.pagoFinal && v.reservaEstado === 'finalizado');
-      if (!contabilizada) return;
       const d   = new Date(v.fecha);
       const ben = (v.pvpVenta||v.importe||0) - (v.pvpFab||0);
+      // Acumular siempre en totales facturados
       if (d.getFullYear() === now.getFullYear()) {
         benefAño += ben;
         if (d.getMonth() === now.getMonth()) benefMes += ben;
       }
+      // Acumular en cobrado solo si está finalizado
+      const contabilizada = v.pagoFinalEstado === 'finalizado' ||
+                            (!v.pagoFinal && !v.reserva && v.estado === 'entregado') ||
+                            (!v.pagoFinal && v.reservaEstado === 'finalizado');
+      if (contabilizada && d.getFullYear() === now.getFullYear()) {
+        benefAñoCobrado += ben;
+        if (d.getMonth() === now.getMonth()) benefMesCobrado += ben;
+      }
     }));
-    const fmt = n => (n>=0?'+':'')+n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+    const fmt  = n => (n>=0?'+':'')+n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+    const fmt2 = n => n.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
     const elM = document.getElementById('stat-benef-mes');
     const elA = document.getElementById('stat-benef-año');
     elM.textContent = fmt(benefMes); elM.style.color = benefMes>=0?'#81c784':'#ef9a9a';
     elA.textContent = fmt(benefAño); elA.style.color = benefAño>=0?'#81c784':'#ef9a9a';
+    const elMC = document.getElementById('stat-benef-mes-cobrado');
+    const elAC = document.getElementById('stat-benef-año-cobrado');
+    elMC.textContent = fmt2(benefMesCobrado); elMC.style.color = benefMesCobrado>=0?'#81c784':'#ef9a9a';
+    elAC.textContent = fmt2(benefAñoCobrado); elAC.style.color = benefAñoCobrado>=0?'#64b5f6':'#ef9a9a';
 
     const enPv = clientes.reduce((s,c)=>s+(c.postventa||[]).filter(p=>p.estado!=='entregado').length,0);
     document.getElementById('stat-postventa').textContent = enPv;
