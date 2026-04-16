@@ -390,7 +390,7 @@
     <div class="value" id="stat-entregado">0</div>
   </div>
   <div class="stat-card">
-    <div class="label">Ventas Totales</div>
+    <div class="label">✅ Cobrado Verificado</div>
     <div class="value" id="stat-ventas">0 €</div>
   </div>
   <div class="stat-card green-top">
@@ -555,8 +555,8 @@
             <select id="v-estado">
               <option value="reservado">🟡 Reservado</option>
               <option value="pedido">🔵 Pedido</option>
-              <option value="fedex">🟠 FedEx</option>
-              <option value="nacex">🟣 Nacex</option>
+              <option value="fedex">🟣 FedEx</option>
+              <option value="nacex">🟠 Nacex</option>
               <option value="entregado">🟢 Entregado</option>
             </select>
           </div>
@@ -669,33 +669,21 @@
   </div>
 </div>
 
-<!-- MODAL ADMIN — GESTIÓN USUARIOS -->
+<!-- MODAL ADMIN -->
 <div class="qs-overlay" id="admin-overlay" onclick="if(event.target===this)cerrarAdmin()">
-  <div class="qs-modal" style="max-width:420px">
+  <div class="qs-modal" style="max-width:440px">
     <div class="qs-header">
-      <span>⚙️ Panel Admin — Gestión de Usuarios</span>
+      <span>⚙️ Panel Admin</span>
       <button class="close-btn" onclick="cerrarAdmin()">×</button>
     </div>
     <div class="qs-body" id="admin-body">
-      <div class="section-title" style="margin-top:0">Usuarios activos</div>
+      <div class="section-title" style="margin-top:0">👥 Usuarios del sistema</div>
       <div id="admin-lista-usuarios" style="margin-bottom:16px;font-size:.83rem;color:var(--text2)">Cargando...</div>
-      <div class="section-title">Crear nuevo usuario</div>
-      <label>Nombre</label>
-      <input type="text" id="nu-nombre" placeholder="Ej: Juan García"/>
-      <label>Email</label>
-      <input type="email" id="nu-email" placeholder="juan@email.com"/>
-      <label>Contraseña inicial</label>
-      <input type="password" id="nu-pass" placeholder="Mínimo 6 caracteres"/>
-      <label>Rol</label>
-      <select id="nu-rol">
-        <option value="comercial">👤 Comercial</option>
-        <option value="admin">🔑 Admin</option>
-      </select>
-      <div id="nu-error" style="color:#ef9a9a;font-size:.78rem;min-height:18px;margin-top:6px"></div>
+      <div class="section-title">⏳ Pagos pendientes de verificar</div>
+      <div id="admin-pagos-pendientes" style="font-size:.82rem;color:var(--text2)">—</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary btn-sm" onclick="cerrarAdmin()">Cerrar</button>
-      <button class="btn btn-primary" style="width:auto;margin-top:0" onclick="crearUsuario()">➕ Crear usuario</button>
     </div>
   </div>
 </div>
@@ -782,8 +770,8 @@
       <div style="font-weight:800;letter-spacing:.1em;font-size:1.05rem;background:linear-gradient(90deg,#ff5252,#e53935);-webkit-background-clip:text;-webkit-text-fill-color:transparent">WATCH SPAIN CLUB</div>
       <div style="color:#666;font-size:.75rem;margin-top:3px;letter-spacing:.08em">CRM — Panel de Gestión</div>
     </div>
-    <label style="display:block;font-size:.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Email</label>
-    <input type="email" id="login-email" placeholder="tu@email.com" style="width:100%;padding:10px 13px;background:#242424;border:1px solid #444;border-radius:9px;font-size:.9rem;color:#f0f0f0;font-family:inherit;margin-bottom:14px" onkeydown="if(event.key==='Enter')login()"/>
+    <label style="display:block;font-size:.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Usuario</label>
+    <input type="text" id="login-email" placeholder="Ruben / Borja" style="width:100%;padding:10px 13px;background:#242424;border:1px solid #444;border-radius:9px;font-size:.9rem;color:#f0f0f0;font-family:inherit;margin-bottom:14px" onkeydown="if(event.key==='Enter')login()" autocomplete="username"/>
     <label style="display:block;font-size:.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Contraseña</label>
     <input type="password" id="login-pass" placeholder="••••••••" style="width:100%;padding:10px 13px;background:#242424;border:1px solid #444;border-radius:9px;font-size:.9rem;color:#f0f0f0;font-family:inherit;margin-bottom:6px" onkeydown="if(event.key==='Enter')login()"/>
     <div id="login-error" style="color:#ef9a9a;font-size:.78rem;min-height:20px;margin-bottom:10px"></div>
@@ -805,7 +793,6 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
   // ── FIREBASE CONFIG ──
@@ -905,141 +892,111 @@
       }, 1200);
     });
   }
-  // ── AUTH ──
-  let ROL    = null;   // 'admin' | 'comercial'
+  // ── USUARIOS (sin Firebase Auth) ──
+  const USUARIOS = [
+    { usuario: 'Ruben',  password: '312406', nombre: 'Rubén', rol: 'admin'     },
+    { usuario: 'Borja',  password: '123456', nombre: 'Borja', rol: 'comercial' },
+  ];
+
+  let ROL        = null;
   let USR_NOMBRE = '';
 
-  const auth = firebase.auth();
-
-  // Mapa formas de pago
-  const FORMAS_PAGO = {'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transferencia','tarjeta':'💳 Tarjeta','contrareembolso':'📦 Contrareembolso','crypto':'₿ Crypto'};
-
-  auth.onAuthStateChanged(async user => {
-    if (!user) {
-      // No logueado → mostrar login
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('loading-screen').style.display = 'none';
-      return;
+  // Comprobar si ya había sesión guardada
+  (function arrancarSesion() {
+    const sesion = sessionStorage.getItem('crm_wsc_user');
+    if (sesion) {
+      try {
+        const u = JSON.parse(sesion);
+        ROL = u.rol; USR_NOMBRE = u.nombre;
+        _aplicarRolUI();
+        iniciarSyncTiempoReal();
+      } catch(e) { mostrarLogin(); }
+    } else {
+      mostrarLogin();
     }
-    // Logueado → cargar rol desde DB
+  })();
+
+  function mostrarLogin() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('loading-screen').style.display = 'none';
+  }
+
+  function _aplicarRolUI() {
     document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('loading-screen').style.display = 'flex';
-    try {
-      const snap = await db.ref('wsc_usuarios/' + user.uid).once('value');
-      let datos = snap.val() || {};
-      // Si este usuario no tiene rol aún, comprobar si es el primero (→ admin) o asignar comercial
-      if (!datos.rol) {
-        const todosSnap = await db.ref('wsc_usuarios').once('value');
-        const todos = todosSnap.val() || {};
-        const esElPrimero = Object.keys(todos).length === 0 || (Object.keys(todos).length === 1 && todos[user.uid]);
-        const rolAsignado = esElPrimero ? 'admin' : 'comercial';
-        datos = { nombre: user.email.split('@')[0], email: user.email, rol: rolAsignado };
-        await db.ref('wsc_usuarios/' + user.uid).set(datos);
-      }
-      ROL        = datos.rol || 'comercial';
-      USR_NOMBRE = datos.nombre || user.email;
-    } catch(e) {
-      ROL = 'comercial'; USR_NOMBRE = user.email;
-    }
-    // Mostrar badge usuario en header
     const badge = document.getElementById('user-badge');
     badge.style.display = 'flex';
-    document.getElementById('user-nombre').textContent = USR_NOMBRE;
+    document.getElementById('user-nombre').textContent    = USR_NOMBRE;
     document.getElementById('user-rol-icon').textContent  = ROL === 'admin' ? '🔑' : '👤';
     document.getElementById('user-rol-label').textContent = ROL === 'admin' ? 'Admin' : 'Comercial';
-    document.getElementById('fecha-hoy').style.display = 'inline';
-    // Mostrar card admin solo para admin
+    document.getElementById('fecha-hoy').style.display    = 'inline';
     if (ROL === 'admin') document.getElementById('stat-card-admin').style.display = 'flex';
-    // Arrancar sync
-    iniciarSyncTiempoReal();
-  });
+  }
 
   function login() {
-    const email = document.getElementById('login-email').value.trim();
-    const pass  = document.getElementById('login-pass').value;
-    const err   = document.getElementById('login-error');
+    const usr  = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const err  = document.getElementById('login-error');
     err.textContent = '';
-    if (!email || !pass) { err.textContent = 'Rellena email y contraseña'; return; }
-    auth.signInWithEmailAndPassword(email, pass).catch(e => {
-      err.textContent = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found'
-        ? '❌ Email o contraseña incorrectos'
-        : '❌ ' + e.message;
-    });
+    if (!usr || !pass) { err.textContent = 'Rellena usuario y contraseña'; return; }
+    const encontrado = USUARIOS.find(u => u.usuario.toLowerCase() === usr.toLowerCase() && u.password === pass);
+    if (!encontrado) { err.textContent = '❌ Usuario o contraseña incorrectos'; return; }
+    ROL = encontrado.rol; USR_NOMBRE = encontrado.nombre;
+    sessionStorage.setItem('crm_wsc_user', JSON.stringify({ rol: ROL, nombre: USR_NOMBRE }));
+    _aplicarRolUI();
+    iniciarSyncTiempoReal();
   }
 
   function logout() {
     if (!confirm('¿Cerrar sesión?')) return;
-    auth.signOut().then(() => {
-      ROL = null; clientes = []; _firstLoad = true;
-      document.getElementById('user-badge').style.display = 'none';
-      document.getElementById('fecha-hoy').style.display = 'none';
-      document.getElementById('stat-card-admin').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
-      // Detach Firebase listener
-      CRM_REF.off();
-    });
-  }
-
-  /* ── PANEL ADMIN — GESTIÓN USUARIOS ── */
-  // App secundaria para crear usuarios sin cerrar sesión del admin
-  let _secondaryApp = null;
-  function _getSecondaryApp() {
-    if (!_secondaryApp) {
-      try { _secondaryApp = firebase.app('secondary'); }
-      catch(e) { _secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary'); }
-    }
-    return _secondaryApp;
+    sessionStorage.removeItem('crm_wsc_user');
+    ROL = null; clientes = []; _firstLoad = true;
+    CRM_REF.off();
+    document.getElementById('user-badge').style.display      = 'none';
+    document.getElementById('fecha-hoy').style.display       = 'none';
+    document.getElementById('stat-card-admin').style.display = 'none';
+    mostrarLogin();
   }
 
   function abrirAdmin() {
     if (ROL !== 'admin') return;
-    cargarListaUsuarios();
+    // Mostrar lista de usuarios hardcodeados
+    document.getElementById('admin-lista-usuarios').innerHTML = USUARIOS.map(u => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border-radius:7px;margin-bottom:5px">
+        <strong style="color:var(--text)">${u.nombre}</strong>
+        <span style="font-size:.72rem;padding:2px 8px;border-radius:10px;${u.rol==='admin'?'background:rgba(255,152,0,.15);color:#ffb74d':'background:var(--bg4);color:var(--text2)'}">${u.rol==='admin'?'🔑 Admin':'👤 Comercial'}</span>
+      </div>`).join('');
+    // Mostrar pagos pendientes de verificar
+    const pendientes = [];
+    clientes.forEach(c => {
+      (c.ventas||[]).forEach((v,i) => {
+        if (v.reservaEstado   === 'recogido') pendientes.push({ cliente: c.nombre, cId: c.id, idx: i, tipo: 'reserva',   importe: v.reserva,   forma: v.reservaForma,   producto: v.producto });
+        if (v.pagoFinalEstado === 'recogido') pendientes.push({ cliente: c.nombre, cId: c.id, idx: i, tipo: 'pagoFinal', importe: v.pagoFinal, forma: v.pagoFinalForma, producto: v.producto });
+      });
+    });
+    const F = {'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transf.','tarjeta':'💳 Tarjeta','contrareembolso':'📦 C/reembolso','crypto':'₿ Crypto'};
+    const pEl = document.getElementById('admin-pagos-pendientes');
+    if (!pendientes.length) {
+      pEl.innerHTML = '<p style="color:var(--green);font-size:.82rem">✅ Sin pagos pendientes de verificar.</p>';
+    } else {
+      pEl.innerHTML = pendientes.map(p => `
+        <div style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.2);border-radius:8px;padding:9px 12px;margin-bottom:7px;font-size:.8rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
+            <div>
+              <strong style="color:var(--text)">${p.cliente}</strong>
+              <span style="color:var(--text3);margin:0 5px">·</span>
+              <span style="color:#ffd54f">${p.producto}</span>
+            </div>
+            <span style="color:#ffb74d;font-weight:700;font-size:.85rem">${Number(p.importe).toFixed(2)} €</span>
+          </div>
+          <div style="color:var(--text2);margin-top:3px">${p.tipo==='reserva'?'🔒 Reserva':'💳 Pago final'} · ${F[p.forma]||p.forma||'—'}</div>
+          <div style="margin-top:7px">
+            <button onclick="marcarFinalizado(${p.cId},${p.idx},'${p.tipo}');abrirAdmin()" style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#81c784;font-size:.73rem;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700">✅ Finalizar — Contabilizar</button>
+          </div>
+        </div>`).join('');
+    }
     document.getElementById('admin-overlay').classList.add('active');
   }
   function cerrarAdmin() { document.getElementById('admin-overlay').classList.remove('active'); }
-
-  async function cargarListaUsuarios() {
-    const el = document.getElementById('admin-lista-usuarios');
-    el.textContent = 'Cargando...';
-    try {
-      const snap = await db.ref('wsc_usuarios').once('value');
-      const usuarios = snap.val() || {};
-      const lista = Object.values(usuarios);
-      if (!lista.length) { el.textContent = 'Sin usuarios registrados.'; return; }
-      el.innerHTML = lista.map(u => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border-radius:7px;margin-bottom:5px">
-          <div>
-            <strong style="color:var(--text)">${u.nombre||'Sin nombre'}</strong>
-            <span style="color:var(--text3);font-size:.75rem;margin-left:6px">${u.email||''}</span>
-          </div>
-          <span style="font-size:.72rem;padding:2px 8px;border-radius:10px;${u.rol==='admin'?'background:rgba(255,152,0,.15);color:#ffb74d':'background:var(--bg4);color:var(--text2)'}">${u.rol==='admin'?'🔑 Admin':'👤 Comercial'}</span>
-        </div>`).join('');
-    } catch(e) { el.textContent = 'Error al cargar usuarios.'; }
-  }
-
-  async function crearUsuario() {
-    const nombre = document.getElementById('nu-nombre').value.trim();
-    const email  = document.getElementById('nu-email').value.trim();
-    const pass   = document.getElementById('nu-pass').value;
-    const rol    = document.getElementById('nu-rol').value;
-    const errEl  = document.getElementById('nu-error');
-    errEl.textContent = '';
-    if (!nombre || !email || !pass) { errEl.textContent = 'Rellena todos los campos'; return; }
-    if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
-    try {
-      const sec  = _getSecondaryApp();
-      const cred = await sec.auth().createUserWithEmailAndPassword(email, pass);
-      await db.ref('wsc_usuarios/' + cred.user.uid).set({ nombre, email, rol });
-      await sec.auth().signOut();
-      errEl.style.color = '#81c784';
-      errEl.textContent = `✅ Usuario "${nombre}" creado correctamente`;
-      ['nu-nombre','nu-email','nu-pass'].forEach(id => document.getElementById(id).value = '');
-      cargarListaUsuarios();
-    } catch(e) {
-      errEl.style.color = '#ef9a9a';
-      errEl.textContent = e.code === 'auth/email-already-in-use' ? '❌ Ese email ya está registrado' : '❌ ' + e.message;
-    }
-  }
 
   const PV_LABELS  = {'taller-angel':'🔵 Taller Ángel','taller-china':'🩷 Taller China','reparado':'✅ Reparado','entregado':'📦 Entregado'};
   const PV_CLASS   = {'taller-angel':'angel','taller-china':'china','reparado':'reparado','entregado':'entregado'};
@@ -1206,12 +1163,23 @@
     document.getElementById('stat-fedex').textContent     = allVentas.filter(v=>(v.estado||'reservado')==='fedex').length;
     document.getElementById('stat-nacex').textContent     = allVentas.filter(v=>(v.estado||'reservado')==='nacex').length;
     document.getElementById('stat-entregado').textContent = allVentas.filter(v=>(v.estado||'reservado')==='entregado').length;
-    const totalVentas = clientes.reduce((s,c) => s + (c.ventas||[]).reduce((sv,v)=>sv+(v.pvpVenta||v.importe||0),0), 0);
-    document.getElementById('stat-ventas').textContent = totalVentas.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+    // Solo contabilizar importes con pago Finalizado (verificado por admin)
+    const totalCobrado = clientes.reduce((s,c) => s + (c.ventas||[]).reduce((sv,v) => {
+      let cobrado = 0;
+      if (v.reservaEstado   === 'finalizado') cobrado += Number(v.reserva)   || 0;
+      if (v.pagoFinalEstado === 'finalizado') cobrado += Number(v.pagoFinal) || 0;
+      return sv + cobrado;
+    }, 0), 0);
+    document.getElementById('stat-ventas').textContent = totalCobrado.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 
     const now = new Date();
     let benefMes = 0, benefAño = 0;
     clientes.forEach(c => (c.ventas||[]).forEach(v => {
+      // Solo contar ventas con pago final finalizado; si no hay pago final, con reserva finalizada
+      const contabilizada = v.pagoFinalEstado === 'finalizado' ||
+                            (!v.pagoFinal && !v.reserva && v.estado === 'entregado') ||
+                            (!v.pagoFinal && v.reservaEstado === 'finalizado');
+      if (!contabilizada) return;
       const d   = new Date(v.fecha);
       const ben = (v.pvpVenta||v.importe||0) - (v.pvpFab||0);
       if (d.getFullYear() === now.getFullYear()) {
@@ -1417,7 +1385,7 @@
               <span style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.25);color:#ffd54f;padding:3px 9px;border-radius:6px">🔒 Reserva: <strong>${Number(v.reserva).toFixed(2)} €</strong>${v.reservaForma?' · '+(F[v.reservaForma]||''):''}</span>
               ${estadoBadge(v.reservaEstado)}
               ${!v.reservaEstado && ROL==='comercial' ? `<button onclick="marcarRecogido(${c.id},${idx},'reserva')" style="background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.3);color:#ffd54f;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">📥 Marcar recogido</button>` : ''}
-              ${v.reservaEstado==='recogido' && ROL==='admin' ? `<button onclick="marcarFinalizado(${c.id},${idx},'reserva')" style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:700">✅ Finalizar</button>` : ''}
+              ${(!v.reservaEstado || v.reservaEstado==='recogido') && ROL==='admin' ? `<button onclick="marcarFinalizado(${c.id},${idx},'reserva')" style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:700">✅ Finalizar</button>` : ''}
             </div>`;
           }
           if (v.pagoFinal) {
@@ -1425,7 +1393,7 @@
               <span style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.25);color:#a5d6a7;padding:3px 9px;border-radius:6px">💳 Pago final: <strong>${Number(v.pagoFinal).toFixed(2)} €</strong>${v.pagoFinalForma?' · '+(F[v.pagoFinalForma]||''):''}</span>
               ${estadoBadge(v.pagoFinalEstado)}
               ${!v.pagoFinalEstado && ROL==='comercial' ? `<button onclick="marcarRecogido(${c.id},${idx},'pagoFinal')" style="background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">📥 Marcar recogido</button>` : ''}
-              ${v.pagoFinalEstado==='recogido' && ROL==='admin' ? `<button onclick="marcarFinalizado(${c.id},${idx},'pagoFinal')" style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:700">✅ Finalizar</button>` : ''}
+              ${(!v.pagoFinalEstado || v.pagoFinalEstado==='recogido') && ROL==='admin' ? `<button onclick="marcarFinalizado(${c.id},${idx},'pagoFinal')" style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:700">✅ Finalizar</button>` : ''}
             </div>`;
           }
           if (v.reserva||v.pagoFinal) html += `</div>`;
@@ -1724,6 +1692,11 @@
     const año  = parseInt(sel.value);
     const data = Array.from({length:12}, () => ({ventas:0,coste:0}));
     clientes.forEach(c => (c.ventas||[]).forEach(v => {
+      // Solo ventas contabilizadas (pago final finalizado, o sin pagos + entregado, o reserva finalizada sin pago final)
+      const contabilizada = v.pagoFinalEstado === 'finalizado' ||
+                            (!v.pagoFinal && !v.reserva && v.estado === 'entregado') ||
+                            (!v.pagoFinal && v.reservaEstado === 'finalizado');
+      if (!contabilizada) return;
       const d = new Date(v.fecha);
       if (d.getFullYear() === año) {
         data[d.getMonth()].ventas += v.pvpVenta||v.importe||0;
