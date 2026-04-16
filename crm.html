@@ -348,12 +348,18 @@
       <div class="brand-sub">Panel de Gestión CRM</div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:12px">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <div style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:4px 10px;border-radius:6px;font-size:.72rem;display:flex;align-items:center;gap:5px" title="Sincronización automática en tiempo real">
       <div id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#555;transition:background .4s;flex-shrink:0"></div>
       <span id="sync-label">Conectando...</span>
     </div>
-    <span class="fecha" id="fecha-hoy"></span>
+    <div id="user-badge" style="display:none;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:.75rem">
+      <span id="user-rol-icon">👤</span>
+      <span id="user-nombre" style="color:var(--text);font-weight:700"></span>
+      <span id="user-rol-label" style="color:var(--text3)"></span>
+      <button onclick="logout()" title="Cerrar sesión" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:.75rem;padding:0 0 0 4px">⏻</button>
+    </div>
+    <span class="fecha" id="fecha-hoy" style="display:none"></span>
   </div>
 </header>
 
@@ -399,6 +405,11 @@
     <div class="label">🔧 En Postventa</div>
     <div class="value" id="stat-postventa" style="color:#ce93d8">0</div>
     <div style="font-size:.68rem;color:var(--text3);margin-top:3px">Toca para ver detalle →</div>
+  </div>
+  <div id="stat-card-admin" class="stat-card" onclick="abrirAdmin()" title="Panel de administración" style="display:none;cursor:pointer;border-top-color:#ff9800;min-width:120px">
+    <div class="label" style="color:#ffb74d">⚙️ Admin</div>
+    <div id="stat-pendientes-verificar" style="font-size:1.4rem;font-weight:700;color:#ffb74d;margin-top:3px">0</div>
+    <div style="font-size:.68rem;color:var(--text3);margin-top:3px">pagos por verificar</div>
   </div>
 </div>
 
@@ -658,6 +669,37 @@
   </div>
 </div>
 
+<!-- MODAL ADMIN — GESTIÓN USUARIOS -->
+<div class="qs-overlay" id="admin-overlay" onclick="if(event.target===this)cerrarAdmin()">
+  <div class="qs-modal" style="max-width:420px">
+    <div class="qs-header">
+      <span>⚙️ Panel Admin — Gestión de Usuarios</span>
+      <button class="close-btn" onclick="cerrarAdmin()">×</button>
+    </div>
+    <div class="qs-body" id="admin-body">
+      <div class="section-title" style="margin-top:0">Usuarios activos</div>
+      <div id="admin-lista-usuarios" style="margin-bottom:16px;font-size:.83rem;color:var(--text2)">Cargando...</div>
+      <div class="section-title">Crear nuevo usuario</div>
+      <label>Nombre</label>
+      <input type="text" id="nu-nombre" placeholder="Ej: Juan García"/>
+      <label>Email</label>
+      <input type="email" id="nu-email" placeholder="juan@email.com"/>
+      <label>Contraseña inicial</label>
+      <input type="password" id="nu-pass" placeholder="Mínimo 6 caracteres"/>
+      <label>Rol</label>
+      <select id="nu-rol">
+        <option value="comercial">👤 Comercial</option>
+        <option value="admin">🔑 Admin</option>
+      </select>
+      <div id="nu-error" style="color:#ef9a9a;font-size:.78rem;min-height:18px;margin-top:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="cerrarAdmin()">Cerrar</button>
+      <button class="btn btn-primary" style="width:auto;margin-top:0" onclick="crearUsuario()">➕ Crear usuario</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL VENTA RÁPIDA -->
 <div class="qs-overlay" id="qs-overlay" onclick="closeQS(event)">
   <div class="qs-modal">
@@ -732,8 +774,25 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- PANTALLA LOGIN -->
+<div id="login-screen" style="display:flex;position:fixed;inset:0;background:#0d0d0d;z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;border:1px solid #333;border-radius:18px;padding:36px 32px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.8)">
+    <div style="text-align:center;margin-bottom:28px">
+      <svg width="46" height="46" viewBox="0 0 120 120" style="margin-bottom:10px"><defs><linearGradient id="lg-login" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff5252"/><stop offset="100%" style="stop-color:#c62828"/></linearGradient></defs><circle cx="60" cy="60" r="32" fill="none" stroke="url(#lg-login)" stroke-width="8"/><circle cx="60" cy="60" r="26" fill="#111"/><polyline points="46,60 56,70 76,48" fill="none" stroke="url(#lg-login)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="font-weight:800;letter-spacing:.1em;font-size:1.05rem;background:linear-gradient(90deg,#ff5252,#e53935);-webkit-background-clip:text;-webkit-text-fill-color:transparent">WATCH SPAIN CLUB</div>
+      <div style="color:#666;font-size:.75rem;margin-top:3px;letter-spacing:.08em">CRM — Panel de Gestión</div>
+    </div>
+    <label style="display:block;font-size:.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Email</label>
+    <input type="email" id="login-email" placeholder="tu@email.com" style="width:100%;padding:10px 13px;background:#242424;border:1px solid #444;border-radius:9px;font-size:.9rem;color:#f0f0f0;font-family:inherit;margin-bottom:14px" onkeydown="if(event.key==='Enter')login()"/>
+    <label style="display:block;font-size:.72rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Contraseña</label>
+    <input type="password" id="login-pass" placeholder="••••••••" style="width:100%;padding:10px 13px;background:#242424;border:1px solid #444;border-radius:9px;font-size:.9rem;color:#f0f0f0;font-family:inherit;margin-bottom:6px" onkeydown="if(event.key==='Enter')login()"/>
+    <div id="login-error" style="color:#ef9a9a;font-size:.78rem;min-height:20px;margin-bottom:10px"></div>
+    <button onclick="login()" style="width:100%;padding:11px;background:#e53935;border:none;border-radius:9px;color:#fff;font-weight:800;font-size:.92rem;cursor:pointer;font-family:inherit;letter-spacing:.04em">Entrar →</button>
+  </div>
+</div>
+
 <!-- PANTALLA DE CARGA -->
-<div id="loading-screen" style="position:fixed;inset:0;background:#0d0d0d;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+<div id="loading-screen" style="display:none;position:fixed;inset:0;background:#0d0d0d;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
   <svg width="52" height="52" viewBox="0 0 120 120"><defs><linearGradient id="rg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff5252"/><stop offset="100%" style="stop-color:#c62828"/></linearGradient></defs><circle cx="60" cy="60" r="32" fill="none" stroke="url(#rg2)" stroke-width="8"/><circle cx="60" cy="60" r="26" fill="#111"/><polyline points="46,60 56,70 76,48" fill="none" stroke="url(#rg2)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   <div style="color:#e53935;font-weight:800;letter-spacing:.1em;font-size:1rem">WATCH SPAIN CLUB</div>
   <div style="display:flex;align-items:center;gap:8px;color:#aaa;font-size:.82rem">
@@ -746,6 +805,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
   // ── FIREBASE CONFIG ──
@@ -791,6 +851,8 @@
   }
 
   function iniciarSyncTiempoReal() {
+    _firstLoad = true; // reset para cada sesión
+    document.getElementById('loading-screen').style.display = 'flex';
     const dot = document.getElementById('sync-dot');
     const lbl = document.getElementById('sync-label');
 
@@ -843,7 +905,141 @@
       }, 1200);
     });
   }
-  iniciarSyncTiempoReal();
+  // ── AUTH ──
+  let ROL    = null;   // 'admin' | 'comercial'
+  let USR_NOMBRE = '';
+
+  const auth = firebase.auth();
+
+  // Mapa formas de pago
+  const FORMAS_PAGO = {'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transferencia','tarjeta':'💳 Tarjeta','contrareembolso':'📦 Contrareembolso','crypto':'₿ Crypto'};
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) {
+      // No logueado → mostrar login
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('loading-screen').style.display = 'none';
+      return;
+    }
+    // Logueado → cargar rol desde DB
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('loading-screen').style.display = 'flex';
+    try {
+      const snap = await db.ref('wsc_usuarios/' + user.uid).once('value');
+      let datos = snap.val() || {};
+      // Si este usuario no tiene rol aún, comprobar si es el primero (→ admin) o asignar comercial
+      if (!datos.rol) {
+        const todosSnap = await db.ref('wsc_usuarios').once('value');
+        const todos = todosSnap.val() || {};
+        const esElPrimero = Object.keys(todos).length === 0 || (Object.keys(todos).length === 1 && todos[user.uid]);
+        const rolAsignado = esElPrimero ? 'admin' : 'comercial';
+        datos = { nombre: user.email.split('@')[0], email: user.email, rol: rolAsignado };
+        await db.ref('wsc_usuarios/' + user.uid).set(datos);
+      }
+      ROL        = datos.rol || 'comercial';
+      USR_NOMBRE = datos.nombre || user.email;
+    } catch(e) {
+      ROL = 'comercial'; USR_NOMBRE = user.email;
+    }
+    // Mostrar badge usuario en header
+    const badge = document.getElementById('user-badge');
+    badge.style.display = 'flex';
+    document.getElementById('user-nombre').textContent = USR_NOMBRE;
+    document.getElementById('user-rol-icon').textContent  = ROL === 'admin' ? '🔑' : '👤';
+    document.getElementById('user-rol-label').textContent = ROL === 'admin' ? 'Admin' : 'Comercial';
+    document.getElementById('fecha-hoy').style.display = 'inline';
+    // Mostrar card admin solo para admin
+    if (ROL === 'admin') document.getElementById('stat-card-admin').style.display = 'flex';
+    // Arrancar sync
+    iniciarSyncTiempoReal();
+  });
+
+  function login() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    const err   = document.getElementById('login-error');
+    err.textContent = '';
+    if (!email || !pass) { err.textContent = 'Rellena email y contraseña'; return; }
+    auth.signInWithEmailAndPassword(email, pass).catch(e => {
+      err.textContent = e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found'
+        ? '❌ Email o contraseña incorrectos'
+        : '❌ ' + e.message;
+    });
+  }
+
+  function logout() {
+    if (!confirm('¿Cerrar sesión?')) return;
+    auth.signOut().then(() => {
+      ROL = null; clientes = []; _firstLoad = true;
+      document.getElementById('user-badge').style.display = 'none';
+      document.getElementById('fecha-hoy').style.display = 'none';
+      document.getElementById('stat-card-admin').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      // Detach Firebase listener
+      CRM_REF.off();
+    });
+  }
+
+  /* ── PANEL ADMIN — GESTIÓN USUARIOS ── */
+  // App secundaria para crear usuarios sin cerrar sesión del admin
+  let _secondaryApp = null;
+  function _getSecondaryApp() {
+    if (!_secondaryApp) {
+      try { _secondaryApp = firebase.app('secondary'); }
+      catch(e) { _secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary'); }
+    }
+    return _secondaryApp;
+  }
+
+  function abrirAdmin() {
+    if (ROL !== 'admin') return;
+    cargarListaUsuarios();
+    document.getElementById('admin-overlay').classList.add('active');
+  }
+  function cerrarAdmin() { document.getElementById('admin-overlay').classList.remove('active'); }
+
+  async function cargarListaUsuarios() {
+    const el = document.getElementById('admin-lista-usuarios');
+    el.textContent = 'Cargando...';
+    try {
+      const snap = await db.ref('wsc_usuarios').once('value');
+      const usuarios = snap.val() || {};
+      const lista = Object.values(usuarios);
+      if (!lista.length) { el.textContent = 'Sin usuarios registrados.'; return; }
+      el.innerHTML = lista.map(u => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border-radius:7px;margin-bottom:5px">
+          <div>
+            <strong style="color:var(--text)">${u.nombre||'Sin nombre'}</strong>
+            <span style="color:var(--text3);font-size:.75rem;margin-left:6px">${u.email||''}</span>
+          </div>
+          <span style="font-size:.72rem;padding:2px 8px;border-radius:10px;${u.rol==='admin'?'background:rgba(255,152,0,.15);color:#ffb74d':'background:var(--bg4);color:var(--text2)'}">${u.rol==='admin'?'🔑 Admin':'👤 Comercial'}</span>
+        </div>`).join('');
+    } catch(e) { el.textContent = 'Error al cargar usuarios.'; }
+  }
+
+  async function crearUsuario() {
+    const nombre = document.getElementById('nu-nombre').value.trim();
+    const email  = document.getElementById('nu-email').value.trim();
+    const pass   = document.getElementById('nu-pass').value;
+    const rol    = document.getElementById('nu-rol').value;
+    const errEl  = document.getElementById('nu-error');
+    errEl.textContent = '';
+    if (!nombre || !email || !pass) { errEl.textContent = 'Rellena todos los campos'; return; }
+    if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
+    try {
+      const sec  = _getSecondaryApp();
+      const cred = await sec.auth().createUserWithEmailAndPassword(email, pass);
+      await db.ref('wsc_usuarios/' + cred.user.uid).set({ nombre, email, rol });
+      await sec.auth().signOut();
+      errEl.style.color = '#81c784';
+      errEl.textContent = `✅ Usuario "${nombre}" creado correctamente`;
+      ['nu-nombre','nu-email','nu-pass'].forEach(id => document.getElementById(id).value = '');
+      cargarListaUsuarios();
+    } catch(e) {
+      errEl.style.color = '#ef9a9a';
+      errEl.textContent = e.code === 'auth/email-already-in-use' ? '❌ Ese email ya está registrado' : '❌ ' + e.message;
+    }
+  }
 
   const PV_LABELS  = {'taller-angel':'🔵 Taller Ángel','taller-china':'🩷 Taller China','reparado':'✅ Reparado','entregado':'📦 Entregado'};
   const PV_CLASS   = {'taller-angel':'angel','taller-china':'china','reparado':'reparado','entregado':'entregado'};
@@ -1031,6 +1227,22 @@
 
     const enPv = clientes.reduce((s,c)=>s+(c.postventa||[]).filter(p=>p.estado!=='entregado').length,0);
     document.getElementById('stat-postventa').textContent = enPv;
+
+    // Pagos pendientes de verificar (solo visible para admin)
+    if (ROL === 'admin') {
+      const pendientes = allVentas.reduce((s,v) => {
+        if (v.reservaEstado  === 'recogido') s++;
+        if (v.pagoFinalEstado === 'recogido') s++;
+        return s;
+      }, 0);
+      document.getElementById('stat-pendientes-verificar').textContent = pendientes;
+      // Highlight si hay pendientes
+      const card = document.getElementById('stat-card-admin');
+      card.style.borderTopColor = pendientes > 0 ? '#ff5722' : '#ff9800';
+      if (pendientes > 0 && card.style.display !== 'none') {
+        document.getElementById('stat-pendientes-verificar').style.color = '#ff7043';
+      }
+    }
   }
 
   /* ── PANEL SEGUIMIENTO POSTVENTA ── */
@@ -1192,14 +1404,31 @@
           ${venta>0?`<span style="color:var(--text3)">Margen: ${((ben/venta)*100).toFixed(1)}%</span>`:''}
         </div>`:''}
         ${(()=>{
-          const FORMAS = {'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transf.','tarjeta':'💳 Tarjeta','contrareembolso':'📦 Contrareem.','crypto':'₿ Crypto'};
+          const F = {'efectivo':'💵 Efectivo','bizum':'📱 Bizum','transferencia':'🏦 Transf.','tarjeta':'💳 Tarjeta','contrareembolso':'📦 C/reembolso','crypto':'₿ Crypto'};
+          const estadoBadge = (estado, quien) => {
+            if (estado === 'finalizado') return `<span style="background:rgba(76,175,80,.18);color:#a5d6a7;border:1px solid rgba(76,175,80,.3);font-size:.65rem;padding:1px 6px;border-radius:4px;margin-left:4px">✅ Finalizado</span>`;
+            if (estado === 'recogido')   return `<span style="background:rgba(255,193,7,.12);color:#ffd54f;border:1px solid rgba(255,193,7,.25);font-size:.65rem;padding:1px 6px;border-radius:4px;margin-left:4px">⏳ Pendiente</span>`;
+            return '';
+          };
           let html = '';
-          if (v.reserva||v.pagoFinal) {
-            html += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:.76rem">`;
-            if (v.reserva) html += `<span style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.25);color:#ffd54f;padding:3px 9px;border-radius:6px">🔒 Reserva: <strong>${Number(v.reserva).toFixed(2)} €</strong>${v.reservaForma?' · '+(FORMAS[v.reservaForma]||''):''}</span>`;
-            if (v.pagoFinal) html += `<span style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.25);color:#a5d6a7;padding:3px 9px;border-radius:6px">✅ Pago final: <strong>${Number(v.pagoFinal).toFixed(2)} €</strong>${v.pagoFinalForma?' · '+(FORMAS[v.pagoFinalForma]||''):''}</span>`;
-            html += `</div>`;
+          if (v.reserva||v.pagoFinal) html += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;font-size:.76rem;align-items:center">`;
+          if (v.reserva) {
+            html += `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+              <span style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.25);color:#ffd54f;padding:3px 9px;border-radius:6px">🔒 Reserva: <strong>${Number(v.reserva).toFixed(2)} €</strong>${v.reservaForma?' · '+(F[v.reservaForma]||''):''}</span>
+              ${estadoBadge(v.reservaEstado)}
+              ${!v.reservaEstado && ROL==='comercial' ? `<button onclick="marcarRecogido(${c.id},${idx},'reserva')" style="background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.3);color:#ffd54f;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">📥 Marcar recogido</button>` : ''}
+              ${v.reservaEstado==='recogido' && ROL==='admin' ? `<button onclick="marcarFinalizado(${c.id},${idx},'reserva')" style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:700">✅ Finalizar</button>` : ''}
+            </div>`;
           }
+          if (v.pagoFinal) {
+            html += `<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+              <span style="background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.25);color:#a5d6a7;padding:3px 9px;border-radius:6px">💳 Pago final: <strong>${Number(v.pagoFinal).toFixed(2)} €</strong>${v.pagoFinalForma?' · '+(F[v.pagoFinalForma]||''):''}</span>
+              ${estadoBadge(v.pagoFinalEstado)}
+              ${!v.pagoFinalEstado && ROL==='comercial' ? `<button onclick="marcarRecogido(${c.id},${idx},'pagoFinal')" style="background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit">📥 Marcar recogido</button>` : ''}
+              ${v.pagoFinalEstado==='recogido' && ROL==='admin' ? `<button onclick="marcarFinalizado(${c.id},${idx},'pagoFinal')" style="background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.35);color:#81c784;font-size:.68rem;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:700">✅ Finalizar</button>` : ''}
+            </div>`;
+          }
+          if (v.reserva||v.pagoFinal) html += `</div>`;
           if (!v.pagoFinal) html += `<div style="margin-top:6px"><button onclick="abrirPagoFinal(${c.id},${idx})" style="background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);color:#81c784;font-size:.72rem;padding:4px 11px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:700">💳 Registrar pago final</button></div>`;
           return html;
         })()}
@@ -1280,7 +1509,11 @@
       pvpFab: pvpFab||0, pvpVenta, importe: pvpVenta,
       fecha: fecha || new Date().toISOString(),
       reserva, reservaForma,
-      pagoFinal, pagoFinalForma
+      reservaEstado:   reserva > 0 ? (ROL === 'admin' ? 'finalizado' : 'recogido') : null,
+      reservaVerifPor: reserva > 0 && ROL === 'admin' ? USR_NOMBRE : null,
+      pagoFinal, pagoFinalForma,
+      pagoFinalEstado:   pagoFinal > 0 ? (ROL === 'admin' ? 'finalizado' : 'recogido') : null,
+      pagoFinalVerifPor: pagoFinal > 0 && ROL === 'admin' ? USR_NOMBRE : null,
     });
     ['v-producto','v-pvp-fab','v-pvp-venta','v-reserva','v-pagofinal'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('v-estado').value = 'reservado';
@@ -1637,15 +1870,39 @@
     const entregar  = document.getElementById('pf-entregar').checked;
     const c = clientes.find(x => String(x.id) === String(_pfCId));
     if (!c || !c.ventas[_pfIdx]) return;
-    c.ventas[_pfIdx].pagoFinal      = importe;
-    c.ventas[_pfIdx].pagoFinalForma = forma;
+    c.ventas[_pfIdx].pagoFinal       = importe;
+    c.ventas[_pfIdx].pagoFinalForma  = forma;
+    c.ventas[_pfIdx].pagoFinalEstado = ROL === 'admin' ? 'finalizado' : 'recogido';
+    if (ROL === 'admin') c.ventas[_pfIdx].pagoFinalVerifPor = USR_NOMBRE;
     if (entregar) c.ventas[_pfIdx].estado = 'entregado';
     renderHistorial(c); save();
-    showToast('✅ Pago final registrado' + (entregar ? ' — Estado → Entregado' : ''));
+    const estadoTxt = ROL === 'admin' ? ' — Contabilizado ✅' : ' — Pendiente verificación admin';
+    showToast('💳 Pago final registrado' + (entregar ? ' — Estado → Entregado' : '') + estadoTxt);
     closePFDirect();
   }
   function closePF(e) { if (e.target === document.getElementById('pf-overlay')) closePFDirect(); }
   function closePFDirect() { document.getElementById('pf-overlay').classList.remove('active'); _pfCId = null; _pfIdx = null; }
+
+  /* ── VERIFICACIÓN DE PAGOS (Recogido / Finalizado) ── */
+  function marcarRecogido(cId, idx, tipo) {
+    // tipo: 'reserva' | 'pagoFinal'
+    const c = clientes.find(x => String(x.id) === String(cId));
+    if (!c || !c.ventas[idx]) return;
+    if (tipo === 'reserva')    c.ventas[idx].reservaEstado    = 'recogido';
+    if (tipo === 'pagoFinal')  c.ventas[idx].pagoFinalEstado  = 'recogido';
+    renderHistorial(c); save();
+    showToast('📥 Marcado como recogido — pendiente de verificación admin');
+  }
+
+  function marcarFinalizado(cId, idx, tipo) {
+    if (ROL !== 'admin') { showToast('⚠️ Solo el admin puede finalizar pagos', 'error'); return; }
+    const c = clientes.find(x => String(x.id) === String(cId));
+    if (!c || !c.ventas[idx]) return;
+    if (tipo === 'reserva')   { c.ventas[idx].reservaEstado   = 'finalizado'; c.ventas[idx].reservaVerifPor = USR_NOMBRE; }
+    if (tipo === 'pagoFinal') { c.ventas[idx].pagoFinalEstado = 'finalizado'; c.ventas[idx].pagoFinalVerifPor = USR_NOMBRE; }
+    renderHistorial(c); save();
+    showToast('✅ Pago finalizado y contabilizado');
+  }
 
   // ── INIT: gestionado por el listener de Firebase (CRM_REF.on) ──
   document.getElementById('v-fecha').valueAsDate = new Date();
