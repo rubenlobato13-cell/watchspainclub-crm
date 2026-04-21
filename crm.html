@@ -205,6 +205,8 @@
     /* ── POSTVENTA BADGES ── */
     .badge-taller-angel{background:rgba(66,165,245,.15);color:#64b5f6;border:1px solid rgba(66,165,245,.3);}
     .badge-taller-china{background:rgba(236,64,122,.15);color:#f48fb1;border:1px solid rgba(236,64,122,.3);}
+    .badge-ups-china{background:rgba(255,152,0,.15);color:#ffb74d;border:1px solid rgba(255,152,0,.3);}
+    .badge-ups-espana{background:rgba(233,30,99,.15);color:#f48fb1;border:1px solid rgba(233,30,99,.3);}
     .badge-reparado{background:rgba(76,175,80,.15);color:#81c784;border:1px solid rgba(76,175,80,.3);}
     .badge-entregado{background:rgba(76,175,80,.08);color:#a5d6a7;border:1px solid rgba(76,175,80,.2);}
     /* Tipo postventa */
@@ -245,21 +247,25 @@
     .pv-tag-sep{width:1px;height:18px;background:var(--border2);align-self:center;}
 
     /* ── POSTVENTA KANBAN ── */
-    .pv-kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;}
+    .pv-kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;}
     @media(max-width:520px){.pv-kanban{grid-template-columns:repeat(2,1fr);}}
     .pv-col{border-radius:10px;overflow:hidden;border:1px solid var(--border);}
     .pv-col-header{padding:7px 8px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:center;}
     .pv-col-header.angel{background:rgba(66,165,245,.15);color:#64b5f6;}
     .pv-col-header.china{background:rgba(236,64,122,.15);color:#f48fb1;}
+    .pv-col-header.ups-china{background:rgba(255,152,0,.15);color:#ffb74d;}
+    .pv-col-header.ups-espana{background:rgba(233,30,99,.15);color:#f06292;}
     .pv-col-header.reparado{background:rgba(76,175,80,.15);color:#81c784;}
     .pv-col-header.entregado{background:rgba(76,175,80,.08);color:#a5d6a7;}
     .pv-col-body{padding:6px;background:var(--bg);min-height:50px;}
     .pv-card{background:var(--bg2);border-radius:7px;padding:7px 9px;margin-bottom:5px;font-size:.76rem;box-shadow:0 1px 3px rgba(0,0,0,.4);border-left:3px solid var(--border2);}
     .pv-card.angel{border-color:#64b5f6;} .pv-card.china{border-color:#f48fb1;}
+    .pv-card.ups-china{border-color:#ffb74d;} .pv-card.ups-espana{border-color:#f06292;}
     .pv-card.reparado{border-color:#81c784;} .pv-card.entregado{border-color:#a5d6a7;}
     .pv-card .pv-fecha{color:var(--text3);font-size:.7rem;margin-top:2px;}
     .pv-item{background:var(--bg3);border-left:3px solid #64b5f6;padding:10px 13px;border-radius:8px;margin-bottom:7px;font-size:.84rem;display:flex;justify-content:space-between;align-items:flex-start;gap:7px;}
-    .pv-item.china{border-color:#f48fb1;} .pv-item.reparado{border-color:#81c784;} .pv-item.entregado{border-color:#a5d6a7;}
+    .pv-item.china{border-color:#f48fb1;} .pv-item.ups-china{border-color:#ffb74d;} .pv-item.ups-espana{border-color:#f06292;}
+    .pv-item.reparado{border-color:#81c784;} .pv-item.entregado{border-color:#a5d6a7;}
     .pv-item .pv-info{flex:1;}
     .pv-item .pv-fecha{color:var(--text3);font-size:.74rem;margin-top:3px;}
     .pv-item .pv-del{background:none;border:none;cursor:pointer;color:var(--border2);font-size:.95rem;padding:0 2px;}
@@ -411,6 +417,14 @@
       <span id="stat-benef-año-cobrado" style="font-size:.78rem;font-weight:700;margin-left:4px;color:#64b5f6">0 €</span>
     </div>
   </div>
+  <div class="stat-card" style="border-top-color:#ffb74d">
+    <div class="label">🟠 UPS China</div>
+    <div class="value" id="stat-ups-china" style="color:#ffb74d">0</div>
+  </div>
+  <div class="stat-card" style="border-top-color:#f06292">
+    <div class="label">🩷 UPS España</div>
+    <div class="value" id="stat-ups-espana" style="color:#f06292">0</div>
+  </div>
   <div class="stat-card" onclick="togglePvPanel()" title="Ver seguimiento postventa" style="cursor:pointer;border-top-color:#ce93d8">
     <div class="label">🔧 En Postventa</div>
     <div class="value" id="stat-postventa" style="color:#ce93d8">0</div>
@@ -465,6 +479,8 @@
           <option value="activa">🔴 Con postventa activa</option>
           <option value="taller-angel">🔵 Taller Ángel</option>
           <option value="taller-china">🩷 Taller China</option>
+          <option value="ups-china">🟠 UPS - China</option>
+          <option value="ups-espana">🩷 UPS - España</option>
           <option value="reparado">✅ Reparado — listo entregar</option>
           <option value="entregado">📦 Entregado</option>
         </select>
@@ -651,6 +667,8 @@
             <select id="pv-estado">
               <option value="taller-angel">🔵 Taller Ángel</option>
               <option value="taller-china">🩷 Taller China</option>
+              <option value="ups-china">🟠 UPS - China</option>
+              <option value="ups-espana">🩷 UPS - España</option>
               <option value="reparado">✅ Reparado</option>
               <option value="entregado">📦 Entregado Reparado</option>
             </select>
@@ -663,6 +681,8 @@
         <div class="pv-kanban">
           <div class="pv-col"><div class="pv-col-header angel">🔵 T. Ángel</div><div class="pv-col-body" id="pv-col-taller-angel"></div></div>
           <div class="pv-col"><div class="pv-col-header china">🩷 T. China</div><div class="pv-col-body" id="pv-col-taller-china"></div></div>
+          <div class="pv-col"><div class="pv-col-header ups-china">🟠 UPS China</div><div class="pv-col-body" id="pv-col-ups-china"></div></div>
+          <div class="pv-col"><div class="pv-col-header ups-espana">🩷 UPS España</div><div class="pv-col-body" id="pv-col-ups-espana"></div></div>
           <div class="pv-col"><div class="pv-col-header reparado">✅ Reparado</div><div class="pv-col-body" id="pv-col-reparado"></div></div>
           <div class="pv-col"><div class="pv-col-header entregado">📦 Entregado</div><div class="pv-col-body" id="pv-col-entregado"></div></div>
         </div>
@@ -1008,8 +1028,8 @@
   }
   function cerrarAdmin() { document.getElementById('admin-overlay').classList.remove('active'); }
 
-  const PV_LABELS  = {'taller-angel':'🔵 Taller Ángel','taller-china':'🩷 Taller China','reparado':'✅ Reparado','entregado':'📦 Entregado'};
-  const PV_CLASS   = {'taller-angel':'angel','taller-china':'china','reparado':'reparado','entregado':'entregado'};
+  const PV_LABELS  = {'taller-angel':'🔵 Taller Ángel','taller-china':'🩷 Taller China','ups-china':'🟠 UPS - China','ups-espana':'🩷 UPS - España','reparado':'✅ Reparado','entregado':'📦 Entregado'};
+  const PV_CLASS   = {'taller-angel':'angel','taller-china':'china','ups-china':'ups-china','ups-espana':'ups-espana','reparado':'reparado','entregado':'entregado'};
   const MESES      = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const VTA_LABELS = {'reservado':'🟡 Reservado','pedido':'🔵 Pedido','fedex':'🟣 FedEx','nacex':'🟠 Nacex','entregado':'🟢 Entregado'};
   const VTA_COLS   = ['reservado','pedido','fedex','nacex','entregado'];
@@ -1217,6 +1237,9 @@
 
     const enPv = clientes.reduce((s,c)=>s+(c.postventa||[]).filter(p=>p.estado!=='entregado').length,0);
     document.getElementById('stat-postventa').textContent = enPv;
+    const allPv = clientes.flatMap(c => c.postventa||[]);
+    document.getElementById('stat-ups-china').textContent  = allPv.filter(p=>p.estado==='ups-china').length;
+    document.getElementById('stat-ups-espana').textContent = allPv.filter(p=>p.estado==='ups-espana').length;
 
     // Pagos pendientes de verificar (solo visible para admin)
     if (ROL === 'admin') {
@@ -1250,10 +1273,12 @@
 
   function renderPvTrackingPanel() {
     const ESTADOS = [
-      { key: 'taller-angel', label: '🔵 Taller Ángel',           color: '#90caf9', bg: 'rgba(66,165,245,.12)' },
-      { key: 'taller-china', label: '🩷 Taller China',            color: '#f48fb1', bg: 'rgba(244,143,177,.1)'  },
-      { key: 'reparado',     label: '✅ Reparado — listo',        color: '#a5d6a7', bg: 'rgba(76,175,80,.12)'   },
-      { key: 'entregado',    label: '📦 Entregado',               color: '#ffe082', bg: 'rgba(255,224,130,.1)'  },
+      { key: 'taller-angel', label: '🔵 Taller Ángel',    color: '#90caf9', bg: 'rgba(66,165,245,.12)' },
+      { key: 'taller-china', label: '🩷 Taller China',     color: '#f48fb1', bg: 'rgba(244,143,177,.1)'  },
+      { key: 'ups-china',    label: '🟠 UPS - China',      color: '#ffb74d', bg: 'rgba(255,152,0,.1)'    },
+      { key: 'ups-espana',   label: '🩷 UPS - España',     color: '#f06292', bg: 'rgba(233,30,99,.1)'    },
+      { key: 'reparado',     label: '✅ Reparado — listo', color: '#a5d6a7', bg: 'rgba(76,175,80,.12)'   },
+      { key: 'entregado',    label: '📦 Entregado',        color: '#ffe082', bg: 'rgba(255,224,130,.1)'  },
     ];
 
     // Recoger todos los artículos de postventa de todos los clientes
@@ -1564,7 +1589,7 @@
       fecha: new Date().toISOString()
     });
     // Sincronizar pvTag y pvTipo en la venta vinculada
-    const PV_TO_PVTAG = {'taller-angel':'taller-angel','taller-china':'taller-china','reparado':'reparado','entregado':'entregado-rep'};
+    const PV_TO_PVTAG = {'taller-angel':'taller-angel','taller-china':'taller-china','ups-china':'taller-china','ups-espana':'taller-china','reparado':'reparado','entregado':'entregado-rep'};
     venta.pvTag  = PV_TO_PVTAG[estado] || null;
     venta.pvTipo = tipo;
     sel.value = '';
@@ -1602,7 +1627,7 @@
       pv.fechaUpdate = new Date().toISOString();
       // Sincronizar pvTag en la venta vinculada
       if (pv.ventaIdx !== undefined && c.ventas[pv.ventaIdx]) {
-        const PV_TO_PVTAG = {'taller-angel':'taller-angel','taller-china':'taller-china','reparado':'reparado','entregado':'entregado-rep'};
+        const PV_TO_PVTAG = {'taller-angel':'taller-angel','taller-china':'taller-china','ups-china':'taller-china','ups-espana':'taller-china','reparado':'reparado','entregado':'entregado-rep'};
         c.ventas[pv.ventaIdx].pvTag = PV_TO_PVTAG[nuevoEstado] || null;
       }
     }
@@ -1630,7 +1655,7 @@
 
   function renderPostventa(c) {
     if (!c.postventa) c.postventa = [];
-    const cols = ['taller-angel','taller-china','reparado','entregado'];
+    const cols = ['taller-angel','taller-china','ups-china','ups-espana','reparado','entregado'];
     cols.forEach(est => {
       const colEl = document.getElementById('pv-col-' + est);
       const items = c.postventa.filter(p => p.estado === est);
