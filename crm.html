@@ -541,6 +541,7 @@
               <th>Contacto</th>
               <th>💰 Ventas</th>
               <th>🔧 Postventa</th>
+              <th id="th-llamado-borja" style="display:none">📞 Borja</th>
               <th>Acción</th>
             </tr>
           </thead>
@@ -1008,6 +1009,7 @@
     document.getElementById('fecha-hoy').style.display    = 'inline';
     if (ROL === 'admin') {
       document.getElementById('stat-card-admin').style.display = 'flex';
+      document.getElementById('th-llamado-borja').style.display = 'table-cell';
     } else {
       // Comercial: ocultar tarjetas financieras de contabilidad
       document.getElementById('stat-card-cobrado').style.display    = 'none';
@@ -1247,6 +1249,17 @@
                <span class="click-hint">Ver detalle ↗</span>`
             : `<span style="color:var(--text3);font-size:.8rem">— sin pendientes</span>`}
         </td>
+        ${(()=>{
+          if (ROL !== 'admin') return '';
+          const ult = c.ultimoContacto ? new Date(c.ultimoContacto) : null;
+          const dias = ult ? Math.floor((Date.now()-ult.getTime())/86400000) : null;
+          const pvAct = (c.postventa||[]).filter(p=>p.estado!=='entregado').length;
+          const vtAct = (c.ventas||[]).filter(v=>(v.estado||'reservado')!=='entregado').length;
+          if (!pvAct && !vtAct) return '<td></td>';
+          const dot = (!ult||dias>=10) ? '🔴' : '🟢';
+          const txt = !ult ? 'Sin contacto' : dias===0 ? 'Hoy' : 'Hace '+dias+'d';
+          return '<td style="font-size:.78rem;text-align:center;white-space:nowrap">'+dot+'<br><span style="color:var(--text2)">'+txt+'</span></td>';
+        })()}
         <td><div class="actions">
           <button class="btn btn-secondary btn-sm" onclick="openModal(${c.id},'info')" title="Ver ficha completa">✏️ Ver</button>
           <button class="btn btn-green btn-sm" onclick="openQuickSale(${c.id})" title="Añadir venta rápida">➕ Venta</button>
@@ -1477,26 +1490,31 @@
 
   /* ── OPEN MODAL ── */
   function openModal(id, tab='info') {
-    const c = clientes.find(x => String(x.id) === String(id));
-    if (!c) { showToast('⚠️ Cliente no encontrado', 'error'); return; }
-    // Garantizar arrays aunque Firebase los haya omitido
-    if (!c.notas)     c.notas     = [];
-    if (!c.ventas)    c.ventas    = [];
-    if (!c.postventa) c.postventa = [];
-    editId = c.id;
-    document.getElementById('modal-nombre').textContent = '⌚ ' + c.nombre;
-    document.getElementById('e-nombre').value    = c.nombre;
-    document.getElementById('e-telefono').value  = c.telefono || '';
-    document.getElementById('e-email').value     = c.email || '';
-    document.getElementById('e-direccion2').value = c.direccion || '';
-    renderHistorial(c); renderNotas(c); renderPostventa(c);
-    document.getElementById('v-fecha').valueAsDate = new Date();
-    // Activar la pestaña correcta
-    const btnMap = {info: 0, ventas: 1, notas: 2, postventa: 3};
-    const btns = document.querySelectorAll('.tab-btn');
-    showTab(tab, btns[btnMap[tab] ?? 0]);
-    _modalOpen = true;
-    document.getElementById('modal-overlay').classList.add('active');
+    try {
+      const c = clientes.find(x => String(x.id) === String(id));
+      if (!c) { showToast('⚠️ Cliente no encontrado', 'error'); return; }
+      // Garantizar arrays aunque Firebase los haya omitido
+      if (!c.notas)     c.notas     = [];
+      if (!c.ventas)    c.ventas    = [];
+      if (!c.postventa) c.postventa = [];
+      editId = c.id;
+      document.getElementById('modal-nombre').textContent = '⌚ ' + c.nombre;
+      document.getElementById('e-nombre').value    = c.nombre;
+      document.getElementById('e-telefono').value  = c.telefono || '';
+      document.getElementById('e-email').value     = c.email || '';
+      document.getElementById('e-direccion2').value = c.direccion || '';
+      renderHistorial(c); renderNotas(c); renderPostventa(c);
+      document.getElementById('v-fecha').valueAsDate = new Date();
+      // Activar la pestaña correcta
+      const btnMap = {info: 0, ventas: 1, notas: 2, postventa: 3};
+      const btns = document.querySelectorAll('.tab-btn');
+      showTab(tab, btns[btnMap[tab] ?? 0]);
+      _modalOpen = true;
+      document.getElementById('modal-overlay').classList.add('active');
+    } catch(err) {
+      console.error('openModal error:', err);
+      showToast('❌ Error al abrir cliente: ' + err.message, 'error');
+    }
   }
 
   /* ── RENDER HISTORIAL ── */
@@ -1802,6 +1820,7 @@
     const cols = ['pv-recibido','taller-angel','taller-china','ups-china','ups-espana','reparado','entregado'];
     cols.forEach(est => {
       const colEl = document.getElementById('pv-col-' + est);
+      if (!colEl) return;
       const items = c.postventa.filter(p => p.estado === est);
       colEl.innerHTML = items.length
         ? items.map(p => `<div class="pv-card ${PV_CLASS[est]}">
