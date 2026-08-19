@@ -1188,20 +1188,18 @@
           return d.getFullYear() === año && (d.getMonth()+1) === m;
         });
       }
-      // Para comercial: si hay filtro de mes activo, el cliente DEBE tener venta en ese mes
-      // (evita mostrar clientes solo de postventa sin venta en el mes)
-      if (ROL === 'comercial' && mes && !mesMatch) return false;
+      // Para comercial: si hay filtro de mes activo, el cliente debe tener venta en ese mes
+      // (clientes sin ventas aún siempre se muestran — son clientes nuevos)
+      if (ROL === 'comercial') {
+        const tieneVentas = (c.ventas||[]).length > 0;
+        if (mes && tieneVentas && !mesMatch) return false;
+      }
       // filtro postventa
       let pvMatch = true;
       if (pvF === 'activa') {
         pvMatch = (c.postventa||[]).some(p => p.estado !== 'entregado');
       } else if (pvF) {
         pvMatch = (c.postventa||[]).some(p => p.estado === pvF);
-      }
-      // Para comercial sin filtro PV activo: no mostrar clientes que solo tengan postventa y sin ventas en el mes
-      if (ROL === 'comercial' && !pvF && !mes) {
-        const tieneVentas = (c.ventas||[]).length > 0;
-        if (!tieneVentas) return false;
       }
       return match && estMatch && mesMatch && pvMatch;
     });
